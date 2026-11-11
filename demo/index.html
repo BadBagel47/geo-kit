@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>geo-kit test page</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+  <header>
+    <h1>geo-kit <span id="version"></span></h1>
+    <p class="lead">Test page for GPS and phone direction. Open it on your phone, outdoors.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="setup-title">
+    <h2 id="setup-title">Setup</h2>
+    <form id="setup">
+      <label>Direction
+        <select name="mode">
+          <option value="map">Map (phone flat)</option>
+          <option value="aim">Aim (phone held up)</option>
+          <option value="aim-pitch">Aim with up/down</option>
+          <option value="none">GPS only</option>
+        </select>
+      </label>
+      <label>Look
+        <select name="theme">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+          <option value="terminal">Terminal</option>
+          <option value="parchment">Parchment</option>
+        </select>
+      </label>
+      <label>Language
+        <select name="lang">
+          <option value="en">English</option>
+          <option value="sv">Svenska</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" name="require"> Compass required</label>
+      <label class="check"><input type="checkbox" name="sim"> Simulated sensors (for computers)</label>
+      <p class="hint">Changing the setup reloads the page.</p>
+    </form>
+  </section>
+
+  <section class="panel" aria-labelledby="live-title">
+    <h2 id="live-title">Live</h2>
+    <div class="live">
+      <div class="dial" id="dial" aria-hidden="true">
+        <div class="rose" id="rose"><span class="n">N</span><span class="e">E</span><span class="s">S</span><span class="w">W</span></div>
+        <div class="needle"></div>
+        <div class="target" id="target-arrow" hidden></div>
+      </div>
+      <div class="pitch" id="pitch-box" hidden aria-hidden="true">
+        <span>sky</span>
+        <div class="pitch-scale"><div class="pitch-mark" id="pitch-mark"></div></div>
+        <span>ground</span>
+      </div>
+    </div>
+    <dl class="readout" id="readout"></dl>
+  </section>
+
+  <section class="panel" aria-labelledby="target-title">
+    <h2 id="target-title">Target test</h2>
+    <p class="hint">Set a target, walk away and back. The blue arrow points to it, and “At target” uses the same rules as the games.</p>
+    <div class="buttons">
+      <button type="button" id="target-here">Target here</button>
+      <button type="button" id="target-ahead">Target 40 m ahead</button>
+      <button type="button" id="target-clear">Clear target</button>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="tools-title">
+    <h2 id="tools-title">Tools</h2>
+    <div class="buttons">
+      <button type="button" id="calibrate">Calibrate screen</button>
+      <button type="button" id="reset-align">Reset north alignment</button>
+      <button type="button" id="report">Download report</button>
+      <button type="button" id="restart">Stop</button>
+    </div>
+    <label>Preview a screen
+      <select id="preview">
+        <option value="">(none)</option>
+        <option>intro</option><option>compass-tap</option><option>requesting</option><option>waiting</option>
+        <option>location-denied</option><option>location-blocked</option><option>compass-denied</option>
+        <option>compass-missing</option><option>compass-no-north</option><option>calibrate</option>
+        <option>insecure</option><option>unsupported</option><option>desktop</option>
+      </select>
+    </label>
+    <p class="hint">The report contains sensor values and GPS accuracy, but never your coordinates.</p>
+  </section>
+
+  <section class="panel sim" id="sim-panel" hidden aria-labelledby="sim-title">
+    <h2 id="sim-title">Simulated sensors</h2>
+    <label>Alpha (turn) <input type="range" name="alpha" min="0" max="359" value="0"></label>
+    <label>Beta (tilt forward/back) <input type="range" name="beta" min="-180" max="180" value="20"></label>
+    <label>Gamma (tilt sideways) <input type="range" name="gamma" min="-90" max="90" value="0"></label>
+    <label>GPS accuracy (m) <input type="range" name="accuracy" min="2" max="80" value="6"></label>
+    <label>Walk north (m) <input type="range" name="north" min="-200" max="200" value="0"></label>
+    <div class="buttons">
+      <button type="button" id="sim-deny-gps">Deny GPS</button>
+      <button type="button" id="sim-stop-compass">Stop compass data</button>
+    </div>
+  </section>
+
+  <script type="module" src="demo.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "name": "geo-kit",
+  "version": "0.1.0",
+  "description": "GPS and phone direction (compass, aim, up/down) for location-based web games, with themable permission screens.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "npm run build && node --test test/unit.test.mjs",
+    "test:browser": "npm run build && node test/browser.test.mjs",
+    "check": "npm test && npm run test:browser"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0",
+    "typescript": "^5.6.0"
+  },
+  "repository": { "type": "git", "url": "https://github.com/BadBagel47/geo-kit.git" },
+  "keywords": ["geolocation", "gps", "compass", "deviceorientation", "location-based-game"]
+}
