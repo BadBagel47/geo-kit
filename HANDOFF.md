@@ -43,7 +43,7 @@ Key decisions (see BACKLOG D-001 for the full list):
 
 - Source is TypeScript in `src/`. `dist/` is **committed** so projects can use the library without a build step. Always run `npm run build` and commit `dist/` together with source changes.
 - `npm test` builds and runs the unit tests. `npm run test:browser` runs the demo page in Chromium with simulated sensors (set `CHROME_PATH` to use an installed Chrome).
-- Bump `version` in both `package.json` and `src/version.ts`, and create a git tag `vX.Y.Z` for each release that projects should use. Do not move existing tags.
+- Bump `version` in both `package.json` and `src/version.ts`, and create a git tag `vX.Y.Z` for each release that projects should use. Do not move existing tags. In some agent environments pushing tags is refused (HTTP 403); then ask the owner to create the release on github.com: `https://github.com/BadBagel47/geo-kit/releases/new?tag=vX.Y.Z&target=main&title=vX.Y.Z`.
 - Player-facing texts live in `src/texts.ts` (English and Swedish). Keep both languages complete; a unit test checks that.
 - No runtime dependencies.
 
