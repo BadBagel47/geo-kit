@@ -7,7 +7,7 @@
 
 ## Current state
 
-Version 0.2.0 is built and tested automatically (24 unit tests, 9 browser checks with simulated sensors). 0.2.0 added the project choice for devices without GPS (F-008). No release tag exists yet: the owner creates `v0.2.0` on github.com (tag pushes are refused in this agent environment). It has **not yet been tested on real phones outdoors** (D-005). The iPhone handling in particular is untested on a device.
+Version 0.2.0 is built and tested automatically (25 unit tests, 9 browser checks with simulated sensors). 0.2.0 added the project choice for devices without GPS (F-008). No release tag exists yet: the owner creates `v0.2.0` on github.com (tag pushes are refused in this agent environment). It has **not yet been tested on real phones outdoors** (D-005). The iPhone handling in particular is untested on a device.
 
 ## Next steps
 
@@ -69,5 +69,5 @@ Key decisions (see BACKLOG D-001 for the full list):
 
 ## Log
 
-- 2026-11-12 – Claude (Opus): devices without GPS/compass, version 0.2.0 (F-008).
+- 2026-11-12 – Claude (Opus): devices without GPS/compass, version 0.2.0 (F-008). Fixed the test page dial spinning across north (B-009), first report from the owner's phone test.
 - 2026-11-11 – Claude (Opus): repo inventory, analysis of blaster/wacka/noxari, built version 0.1.0 with tests, test page and docs (D-001, F-002, F-003, F-004).

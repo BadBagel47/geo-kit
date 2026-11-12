@@ -1,7 +1,7 @@
 // Unit tests for the pure parts. Run with: npm test (builds first, then node --test).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { OrientationTracker, ZoneMonitor, distanceMeters, bearingDegrees, relativeBearing, angleDelta, getGuidance, en, sv, getTexts, fill } from '../dist/index.js';
+import { OrientationTracker, ZoneMonitor, continuousAngle, distanceMeters, bearingDegrees, relativeBearing, angleDelta, getGuidance, en, sv, getTexts, fill } from '../dist/index.js';
 import { matrixFromEuler } from '../dist/math.js';
 
 const close = (actual, expected, tolerance = 0.5, message = '') =>
@@ -233,4 +233,11 @@ test('no-GPS policy: computers without compass get no phone troubleshooting', ()
   assert.equal(warn.screen, null); assert.equal(warn.bar, 'no-compass-device');
   assert.equal(getGuidance(s, { noGps: 'block' }).screen, 'no-compass-device');
   assert.equal(getGuidance(s, { requireCompass: true }).screen, 'no-compass-device');
+});
+
+test('continuousAngle turns the short way across north', () => {
+  assert.equal(continuousAngle(null, 10), 10);
+  assert.equal(continuousAngle(359, 1), 361);
+  assert.equal(continuousAngle(-359, -1), -361);
+  assert.equal(continuousAngle(720, 10), 730);
 });

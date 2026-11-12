@@ -102,3 +102,12 @@ export function bearingDegrees(a: LatLon, b: LatLon): number {
  * 0 = straight ahead, positive = to the right, negative = to the left.
  */
 export const relativeBearing = (heading: number, targetBearing: number): number => angleDelta(heading, targetBearing);
+
+/**
+ * For rotating things on screen: returns `next` as an unwrapped angle close to `previous`,
+ * so a CSS transition or animation turns the short way (359° → 1° becomes 359° → 361°)
+ * instead of spinning almost a full turn. Pass the returned value as `previous` next time.
+ */
+export function continuousAngle(previous: number | null, next: number): number {
+  return previous === null || !Number.isFinite(previous) ? next : previous + angleDelta(previous, next);
+}

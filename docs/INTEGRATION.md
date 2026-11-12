@@ -104,6 +104,7 @@ All texts can be replaced through `texts`. Write `introBody` for the specific ga
 - `distanceMeters(a, b)`, `bearingDegrees(a, b)`, `relativeBearing(heading, bearing)` (0 = straight ahead, + right, − left).
 - `ZoneMonitor` for "has the player arrived?": enters after 3 fixes inside the radius within 3 s, leaves only after 2 s beyond the exit radius, ignores inaccurate or old fixes. Defaults 15 m / 35 m.
 - `isFresh(fix, maxAgeMs)` before trusting a position.
+- `continuousAngle(previous, next)` whenever something on screen rotates with the heading (needle, map, arrow), especially with CSS transitions or animations. Without it, crossing north (359° → 1°) makes the element spin almost a full turn.
 - `kit.alignNorth()`, `kit.setHeadingOffset(deg)`, `kit.resetAlignment()` for manual corrections. Headings are magnetic north; in Uppsala true north is about 6° different.
 - `kit.downloadReport()` for bug reports from the field (no coordinates included).
 

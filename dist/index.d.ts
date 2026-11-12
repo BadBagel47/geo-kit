@@ -7,7 +7,7 @@ export { OrientationTracker, POOR_COMPASS_ACCURACY } from './orientation.js';
 export type { PointingMode, PoseHint, OrientationOptions, OrientationOutput, EulerSample } from './orientation.js';
 export { ZoneMonitor } from './zone.js';
 export type { ZoneOptions, ZoneResult } from './zone.js';
-export { distanceMeters, bearingDegrees, relativeBearing, angleDelta, normalizeDegrees } from './math.js';
+export { distanceMeters, bearingDegrees, relativeBearing, angleDelta, normalizeDegrees, continuousAngle } from './math.js';
 export type { LatLon } from './math.js';
 export { getGuidance, NO_GPS_GRACE_MS } from './guidance.js';
 export type { Guidance, GuidanceOptions, ScreenId, BarId, LampState, NoGpsPolicy } from './guidance.js';

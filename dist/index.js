@@ -2,7 +2,7 @@ export { GeoKit } from './kit.js';
 export { isFresh } from './location.js';
 export { OrientationTracker, POOR_COMPASS_ACCURACY } from './orientation.js';
 export { ZoneMonitor } from './zone.js';
-export { distanceMeters, bearingDegrees, relativeBearing, angleDelta, normalizeDegrees } from './math.js';
+export { distanceMeters, bearingDegrees, relativeBearing, angleDelta, normalizeDegrees, continuousAngle } from './math.js';
 export { getGuidance, NO_GPS_GRACE_MS } from './guidance.js';
 export { getTexts, fill, en, sv, languages } from './texts.js';
 export { mountGeoKitUI, applyTheme, themes, CSS } from './ui.js';

@@ -1,5 +1,5 @@
 // geo-kit test page. Plain JavaScript on top of the built library in ../dist.
-import { GeoKit, mountGeoKitUI, themes, ZoneMonitor, distanceMeters, bearingDegrees, relativeBearing, VERSION } from '../dist/index.js';
+import { GeoKit, mountGeoKitUI, themes, ZoneMonitor, distanceMeters, bearingDegrees, relativeBearing, continuousAngle, VERSION } from '../dist/index.js';
 
 const params = new URLSearchParams(location.search);
 const setup = {
@@ -118,12 +118,16 @@ const pitchBox = document.getElementById('pitch-box');
 const pitchMark = document.getElementById('pitch-mark');
 const readout = document.getElementById('readout');
 pitchBox.hidden = setup.mode !== 'aim-pitch';
+// Unwrapped angles so the CSS transition always turns the short way.
+let roseAngle = null, arrowAngle = null;
 const fmt = (v, unit = '°') => v === null || v === undefined ? '—' : `${Math.round(v)}${unit}`;
 
 function render() {
   const s = kit.getState();
   const h = s.direction.heading;
-  rose.style.transform = `rotate(${-(h ?? 0)}deg)`;
+  roseAngle = continuousAngle(roseAngle, -(h ?? 0));
+  rose.style.transform = `rotate(${roseAngle}deg)`;
+  rose.dataset.angle = String(roseAngle);
   const fix = s.location?.fix ?? null;
   let distance = null, rel = null;
   if (target && fix) {
@@ -133,7 +137,7 @@ function render() {
     zoneInside = result.inside;
   }
   arrow.hidden = rel === null;
-  if (rel !== null) arrow.style.transform = `rotate(${rel}deg)`;
+  if (rel !== null) { arrowAngle = continuousAngle(arrowAngle, rel); arrow.style.transform = `rotate(${arrowAngle}deg)`; }
   if (s.direction.pitch !== null) pitchMark.style.top = `${50 - (s.direction.pitch / 90) * 50}%`;
   const rows = [
     ['Location', s.location ? s.location.status : 'not used'],

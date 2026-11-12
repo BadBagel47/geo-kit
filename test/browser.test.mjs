@@ -56,6 +56,14 @@ try {
     await slider(page, 'alpha', 90);
     await page.waitForFunction(() => document.querySelector('dd[data-key="Heading"]')?.textContent?.startsWith('270°'));
     assert.match(await value(page, 'Location'), /ok/);
+    // Crossing north must turn the dial the short way, not spin it almost a full turn.
+    await slider(page, 'alpha', 2);
+    await page.waitForFunction(() => document.querySelector('dd[data-key="Heading"]')?.textContent?.startsWith('358°'));
+    const before = Number(await page.locator('#rose').getAttribute('data-angle'));
+    await slider(page, 'alpha', 358);
+    await page.waitForFunction(() => document.querySelector('dd[data-key="Heading"]')?.textContent?.startsWith('2°'));
+    const after = Number(await page.locator('#rose').getAttribute('data-angle'));
+    assert.ok(Math.abs(after - before) < 10, `dial turned ${after - before}° instead of 4°`);
     await slider(page, 'beta', 88);
     await page.getByText('Hold the phone flatter.').waitFor();
     await page.screenshot({ path: join(shots, 'bar-flatter.png') });
