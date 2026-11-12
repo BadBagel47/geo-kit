@@ -7,16 +7,19 @@ IDs: one shared running series. B = bug, F = feature, D = planning/design. Prior
 | ID | Type | Priority | Description | Needs |
 |---|---|---|---|---|
 | D-005 | Design | High | Field test the test page outdoors on a real phone: Android (Pixel) in all three modes, and an iPhone if available. Check that the heading matches reality, that there are no jumps when tilting, that the screens are understandable, and that "At target" triggers at the right place. Download a report if something is wrong. | Owner, outdoors with a phone |
-| D-007 | Design | Medium | Write improvement notes for the existing projects, for their own agents: blaster (fix the heading jump when tilting, a small change limited to `src/compass.ts`), wacka (compare its flow with geo-kit and list any gaps), noxari (direction drift B-001, compare with geo-kit's approach). The owner prefers targeted fixes over replacing working code. | D-005 results preferred first |
+| D-007 | Design | Medium | Write improvement notes for the existing projects, for their own agents: blaster (fix the heading jump when tilting, a small change limited to `src/compass.ts`), wacka (compare its flow with geo-kit and list any gaps), noxari (direction drift B-001, compare with geo-kit's approach). The owner prefers targeted fixes over replacing working code. Also record the B-009 kind of spin found 2026-11-12: wacka's compass button needle in FREE mode (`src/map/GameMap.tsx`, 80 ms transition, map bearing wraps at ±180°) and noxari's finder arrow (`finder-orbit-arrow`, 0.12 s transition, angle wraps when the target is straight below). blaster is not affected. | D-005 results preferred first |
+| D-010 | Design | Low | Licence: the repo is public but has no licence file, so nobody else may legally reuse the code. Fine for the owner's own projects. Decide whether to add one (e.g. MIT) or keep it as is. | Owner's choice |
+| D-011 | Design | Low | Location and privacy (GDPR) guidance for games that use geo-kit. geo-kit itself keeps the position in the browser and never sends it anywhere, and reports contain no coordinates. A game that sends or saves positions (server, database, scores with places) processes personal data and needs a privacy notice; the text `introPrivacy` can point to it. The test page saves a test target in the browser's local storage only when the player taps "Target here", which is storage needed for a function the player asked for. Add a short section to docs/INTEGRATION.md so implementing agents flag this. Not legal advice; official guidance: https://www.imy.se/ | – |
 | F-006 | Feature | Low | Automatic magnetic declination (true north instead of magnetic north) from the GPS position. About 6° in Uppsala today; can be set manually with `setHeadingOffset()`. | – |
 
 ## Proposed runs
 
-- **A** – Opus, high – Fixes after the field test
+- **A** – strong model, high level – Fixes after the field test
   - D-005 – Fix whatever the owner's field test and report show
-- **B** – Opus, medium – Notes for the existing projects
-  - D-007 – Improvement notes for blaster, wacka and noxari
-- **C** – Sonnet, medium – True north
+- **B** – strong model, medium level – Notes for the existing projects
+  - D-007 – Improvement notes for blaster, wacka and noxari, incl. the spinning needle/arrow in wacka and noxari
+- **C** – standard model, medium level – Privacy guidance and true north
+  - D-011 – Privacy section in INTEGRATION.md
   - F-006 – Automatic magnetic declination
 
 ## Done
