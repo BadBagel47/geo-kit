@@ -12,8 +12,8 @@ Version 0.3.0 is built and tested automatically (26 unit tests, 10 browser check
 
 ## Next steps
 
-1. D-005 (field test): the owner tests the test page on a phone outdoors and downloads a report if something looks wrong.
-2. D-007 (notes for the existing games): see the backlog.
+1. D-005 (field test): the owner tests the test page on a phone outdoors in all three modes and downloads a report if something looks wrong. Check especially that the heading now matches true north (maps).
+2. D-010 (licence): owner's choice.
 
 ## Decisions
 
