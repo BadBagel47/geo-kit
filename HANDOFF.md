@@ -3,16 +3,17 @@
 - **Rules version:** adapted to agent rules v1.0.
 - **Inventory:** done 2026-11-11. The repo was created empty on 2026-11-11 for this project; there were no branches, PRs, issues or earlier documentation.
 - **Publishing:** the test page is served by GitHub Pages from `main`, folder `/` (root `index.html` redirects to `demo/`): https://badbagel47.github.io/geo-kit/demo/. Other projects use the library through a git tag (see [docs/INTEGRATION.md](docs/INTEGRATION.md)).
-- **Last updated:** 2026-11-11
+- **Last updated:** 2026-11-12
 
 ## Current state
 
-Version 0.1.0 is built and tested automatically (20 unit tests, 8 browser checks with simulated sensors). It has **not yet been tested on real phones outdoors** (D-005). The iPhone handling in particular is untested on a device.
+Version 0.2.0 is built and tested automatically (24 unit tests, 9 browser checks with simulated sensors). 0.2.0 added the project choice for devices without GPS (F-008). No release tag exists yet: the owner creates `v0.2.0` on github.com (tag pushes are refused in this agent environment). It has **not yet been tested on real phones outdoors** (D-005). The iPhone handling in particular is untested on a device.
 
 ## Next steps
 
-1. D-005: the owner tests the test page on a phone outdoors (Android and, if possible, iPhone) and downloads a report if something looks wrong.
-2. D-007: write improvement notes for blaster, wacka and noxari (see BACKLOG). The owner prefers targeted fixes in existing games over replacing their code with geo-kit.
+1. Owner: enable GitHub Pages (Settings → Pages → Deploy from a branch → `main`, `/ (root)`) and create release `v0.2.0`.
+2. D-005: the owner tests the test page on a phone outdoors (Android and, if possible, iPhone) and downloads a report if something looks wrong.
+3. D-007: write improvement notes for blaster, wacka and noxari (see BACKLOG). The owner prefers targeted fixes in existing games over replacing their code with geo-kit.
 
 ## Goals
 
@@ -37,6 +38,7 @@ Key decisions (see BACKLOG D-001 for the full list):
 - **Follow the north-referenced stream directly** (as blaster and wacka do, confirmed on the owner's Pixel). noxari follows the relative gyro stream with a stored offset, which can drift away from north; that is a likely (not proven) cause of its paused bug B-001, and the reason it needs a drift guard. geo-kit does not use relative data, so that kind of drift cannot build up. A wrong compass (magnets, no calibration) can still give a wrong heading; the calibration screen and "align to north" cover that. Light vector smoothing replaces it.
 - **iPhone:** `alpha` has an arbitrary zero; `webkitCompassHeading` is the north-referenced equivalent of alpha. geo-kit learns the offset between them (with smoothing and outlier rejection) and then uses the same 3D maths as Android, so both platforms behave the same in both modes. Untested on a device.
 - **Headings are magnetic** (what the phones report). In Uppsala the difference to true north is about 6°. `setHeadingOffset()` can correct it; automatic correction is F-006.
+- **Devices without GPS are a project choice** (`noGps: 'warn' | 'block' | 'allow'`). The implementing agent asks the owner with a recommendation (docs/INTEGRATION.md section 1).
 - **Diagnostic reports never contain coordinates**, only sensor values and GPS accuracy.
 
 ## Way of working
@@ -67,4 +69,5 @@ Key decisions (see BACKLOG D-001 for the full list):
 
 ## Log
 
+- 2026-11-12 – Claude (Opus): devices without GPS/compass, version 0.2.0 (F-008).
 - 2026-11-11 – Claude (Opus): repo inventory, analysis of blaster/wacka/noxari, built version 0.1.0 with tests, test page and docs (D-001, F-002, F-003, F-004).

@@ -6,6 +6,7 @@ const setup = {
   mode: params.get('mode') ?? 'map',
   theme: params.get('theme') ?? 'light',
   lang: params.get('lang') ?? 'en',
+  nogps: params.get('nogps') ?? 'warn',
   require: params.get('require') === '1',
   sim: params.get('sim') === '1',
 };
@@ -14,9 +15,9 @@ document.getElementById('version').textContent = 'v' + VERSION;
 // ---------- Setup form (changes reload the page for a clean start) ----------
 const form = document.getElementById('setup');
 form.mode.value = setup.mode; form.theme.value = setup.theme; form.lang.value = setup.lang;
-form.require.checked = setup.require; form.sim.checked = setup.sim;
+form.nogps.value = setup.nogps; form.require.checked = setup.require; form.sim.checked = setup.sim;
 form.addEventListener('change', () => {
-  const next = new URLSearchParams({ mode: form.mode.value, theme: form.theme.value, lang: form.lang.value });
+  const next = new URLSearchParams({ mode: form.mode.value, theme: form.theme.value, lang: form.lang.value, nogps: form.nogps.value });
   if (form.require.checked) next.set('require', '1');
   if (form.sim.checked) next.set('sim', '1');
   location.search = next.toString();
@@ -70,6 +71,7 @@ const ui = mountGeoKitUI(kit, {
   lang: setup.lang,
   theme: themes[setup.theme] ?? {},
   requireCompass: setup.require,
+  noGps: setup.nogps,
   texts: { app: setup.lang === 'sv' ? 'Testsidan' : 'This test page' },
 });
 document.body.dataset.theme = setup.theme;

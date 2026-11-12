@@ -5,7 +5,7 @@
  * use getGuidance() + getTexts() instead.
  */
 import type { GeoKit } from './kit.js';
-import { type Guidance, type ScreenId } from './guidance.js';
+import { type Guidance, type NoGpsPolicy, type ScreenId } from './guidance.js';
 import { type TextOverrides } from './texts.js';
 export type Theme = {
     font: string;
@@ -44,6 +44,8 @@ export type UIOptions = {
     container?: HTMLElement;
     requireCompass?: boolean;
     waitForFix?: boolean;
+    /** Devices without GPS or compass (computers, Wi-Fi tablets): "warn" (default), "block" or "allow". */
+    noGps?: NoGpsPolicy;
     /** Show the small status bar while playing. Default true. */
     showBar?: boolean;
     barPosition?: 'top' | 'bottom';

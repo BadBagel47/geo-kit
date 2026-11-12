@@ -17,7 +17,7 @@ export class LocationController {
     constructor(options, onChange, log) {
         this.onChange = onChange;
         this.log = log;
-        this.state = { status: 'off', fix: null, permission: null };
+        this.state = { status: 'off', fix: null, permission: null, coarseSince: null };
         this.watchId = null;
         this.session = 0;
         this.attempted = false;
@@ -38,6 +38,7 @@ export class LocationController {
         this.weakAccuracy = options.weakAccuracy ?? 25;
         this.staleMs = options.staleMs ?? 20000;
         this.courseMinSpeed = options.courseMinSpeed ?? 0.7;
+        this.coarseAccuracy = options.coarseAccuracy ?? 200;
     }
     /**
      * Ask the Permissions API whether location is already allowed. Resolves "granted",
@@ -105,7 +106,7 @@ export class LocationController {
         this.session++;
         this.attempted = false;
         this.teardown();
-        this.state = { status: 'off', fix: null, permission: this.state.permission };
+        this.state = { status: 'off', fix: null, permission: this.state.permission, coarseSince: null };
         this.onChange();
     }
     destroy() {
@@ -130,7 +131,8 @@ export class LocationController {
         };
         // Coordinates are deliberately not logged (privacy of diagnostic reports).
         this.log?.({ kind: 'gps', accuracy: fix.accuracy, speed, course });
-        this.set({ fix, status: fix.accuracy > this.weakAccuracy ? 'weak' : 'ok' });
+        const coarseSince = fix.accuracy > this.coarseAccuracy ? (this.state.coarseSince ?? Date.now()) : null;
+        this.set({ fix, coarseSince, status: fix.accuracy > this.weakAccuracy ? 'weak' : 'ok' });
     }
     failed(error, session) {
         if (session !== this.session)

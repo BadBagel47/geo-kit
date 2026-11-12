@@ -1,8 +1,17 @@
+/** On a phone, coarse positions are normal for a while after start; only this long counts as "no GPS". */
+export const NO_GPS_GRACE_MS = 30000;
 export function getGuidance(state, options = {}) {
     const { location: loc, compass, device } = state;
     const dismissed = options.dismissed ?? new Set();
     const requireCompass = options.requireCompass === true;
     const waitForFix = options.waitForFix !== false;
+    const policy = options.noGps ?? 'warn';
+    const now = options.now ?? Date.now();
+    // A position that stays coarse means the device estimates it from Wi-Fi or the network.
+    const noGps = !!loc?.fix && loc.coarseSince != null
+        && (!device.mobile || now - loc.coarseSince >= NO_GPS_GRACE_MS);
+    // Computers have no compass; troubleshooting steps for phones would not help there.
+    const noCompassDevice = !!compass && !device.mobile && ['missing', 'no-north', 'unsupported'].includes(compass.status);
     const lamps = {
         location: loc ? locationLamp(loc.status) : null,
         compass: compass ? compassLamp(compass.status) : null,
@@ -12,7 +21,7 @@ export function getGuidance(state, options = {}) {
     if (options.forced)
         return result(options.forced);
     const block = (id) => !dismissed.has(id);
-    if (!device.mobile && !state.started && block('desktop'))
+    if (!device.mobile && !state.started && policy !== 'allow' && (policy === 'block' || block('desktop')))
         return result('desktop');
     if (!state.started)
         return result('intro');
@@ -25,8 +34,13 @@ export function getGuidance(state, options = {}) {
         return result('location-blocked');
     if (loc?.status === 'denied')
         return result('location-denied');
+    // Devices without GPS / compass, handled by the project's policy.
+    if (noGps && policy !== 'allow' && (policy === 'block' || block('no-gps')))
+        return result('no-gps');
+    if (noCompassDevice && (requireCompass || policy === 'block'))
+        return result('no-compass-device');
     // Compass problems: blocking when required, otherwise shown once and then dismissible.
-    const compassScreen = !compass ? null
+    const compassScreen = !compass || noCompassDevice ? null
         : compass.needsGesture && compass.status === 'off' ? 'compass-tap'
             : compass.status === 'denied' ? 'compass-denied'
                 : compass.status === 'missing' ? 'compass-missing'
@@ -39,9 +53,9 @@ export function getGuidance(state, options = {}) {
         return result('requesting');
     if (loc && waitForFix && !loc.fix && block('waiting'))
         return result('waiting');
-    return result(null, pickBar(state));
+    return result(null, pickBar(state, noGps));
 }
-function pickBar(state) {
+function pickBar(state, noGps) {
     const { location: loc, compass, direction } = state;
     if (loc) {
         if (loc.status === 'stale')
@@ -56,9 +70,14 @@ function pickBar(state) {
             return 'calibrate';
         if (compass.status === 'stale')
             return direction.source === 'course' ? 'course' : 'compass-stale';
-        if (['denied', 'missing', 'no-north', 'unsupported'].includes(compass.status))
-            return direction.source === 'course' ? 'course' : 'no-compass';
+        if (['denied', 'missing', 'no-north', 'unsupported'].includes(compass.status)) {
+            if (direction.source === 'course')
+                return 'course';
+            return state.device.mobile ? 'no-compass' : 'no-compass-device';
+        }
     }
+    if (noGps)
+        return 'coarse';
     if (loc?.status === 'weak')
         return 'weak';
     return null;

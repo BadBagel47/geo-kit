@@ -200,3 +200,37 @@ test('texts: every language has every key, and overrides work', () => {
   assert.equal(fill(t.introBody, { app: t.app }), 'Spökjakten använder telefonens sensorer när du spelar utomhus.');
   assert.equal(getTexts('xx').introTitle, en.introTitle);
 });
+
+const desktop = { ios: false, android: false, mobile: false, secure: true, motionNeedsTap: false };
+const coarse = (since) => ({ status: 'weak', fix: fix(0, Date.now(), 900), permission: 'granted', coarseSince: since });
+
+test('no-GPS policy: computers before start', () => {
+  const s = baseState({ started: false, device: desktop });
+  assert.equal(getGuidance(s).screen, 'desktop');
+  assert.equal(getGuidance(s, { noGps: 'block', dismissed: new Set(['desktop']) }).screen, 'desktop', 'block cannot be dismissed');
+  assert.equal(getGuidance(s, { noGps: 'allow' }).screen, 'intro');
+});
+
+test('no-GPS policy: coarse position on a computer', () => {
+  const now = Date.now();
+  const s = baseState({ device: desktop, location: coarse(now), compass: null });
+  assert.equal(getGuidance(s, { now }).screen, 'no-gps');
+  const dismissed = getGuidance(s, { now, dismissed: new Set(['no-gps']) });
+  assert.equal(dismissed.screen, null); assert.equal(dismissed.bar, 'coarse'); assert.equal(dismissed.values.accuracy, 900);
+  assert.equal(getGuidance(s, { now, noGps: 'block', dismissed: new Set(['no-gps']) }).screen, 'no-gps');
+  assert.equal(getGuidance(s, { now, noGps: 'allow' }).bar, 'coarse');
+});
+
+test('no-GPS policy: phones get a grace period for slow GPS starts', () => {
+  const now = Date.now();
+  assert.equal(getGuidance(baseState({ location: coarse(now - 5000) }), { now }).screen, null);
+  assert.equal(getGuidance(baseState({ location: coarse(now - 31000) }), { now }).screen, 'no-gps');
+});
+
+test('no-GPS policy: computers without compass get no phone troubleshooting', () => {
+  const s = baseState({ device: desktop, compass: { ...baseState().compass, status: 'missing', heading: null } });
+  const warn = getGuidance(s);
+  assert.equal(warn.screen, null); assert.equal(warn.bar, 'no-compass-device');
+  assert.equal(getGuidance(s, { noGps: 'block' }).screen, 'no-compass-device');
+  assert.equal(getGuidance(s, { requireCompass: true }).screen, 'no-compass-device');
+});

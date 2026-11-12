@@ -47,6 +47,10 @@ export type Texts = {
     unsupportedBody: string;
     desktopTitle: string;
     desktopBody: string;
+    noGpsTitle: string;
+    noGpsBody: string;
+    noCompassDeviceTitle: string;
+    noCompassDeviceBody: string;
     stepsLocationIos: string[];
     stepsLocationAndroid: string[];
     stepsLocationOther: string[];
@@ -74,6 +78,8 @@ export type Texts = {
     barCalibrate: string;
     barCourse: string;
     barNoCompass: string;
+    barCoarse: string;
+    barNoCompassDevice: string;
 };
 export declare const en: Texts;
 export declare const sv: Texts;

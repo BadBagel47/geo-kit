@@ -7,15 +7,32 @@ import type { GeoKitState } from './kit.js';
 export type ScreenId =
   | 'desktop' | 'intro' | 'compass-tap' | 'requesting' | 'waiting'
   | 'insecure' | 'unsupported' | 'location-denied' | 'location-blocked'
-  | 'compass-denied' | 'compass-missing' | 'compass-no-north' | 'calibrate';
+  | 'compass-denied' | 'compass-missing' | 'compass-no-north' | 'calibrate'
+  | 'no-gps' | 'no-compass-device';
 
 export type BarId =
   | 'searching' | 'weak' | 'stale' | 'flatter' | 'hold-up' | 'hold-lower'
-  | 'compass-stale' | 'calibrate' | 'course' | 'no-compass';
+  | 'compass-stale' | 'calibrate' | 'course' | 'no-compass'
+  | 'coarse' | 'no-compass-device';
 
 export type LampState = 'off' | 'busy' | 'ok' | 'warn' | 'error';
 
+/**
+ * How to treat devices without GPS or compass (computers, Wi-Fi-only tablets). A project choice:
+ * - "warn" (default): explain the problem once, then let the player continue.
+ * - "block": the game cannot be played on them; no way past the message.
+ * - "allow": the game works without GPS (e.g. it can be played at home); only a small status note.
+ */
+export type NoGpsPolicy = 'warn' | 'block' | 'allow';
+
+/** On a phone, coarse positions are normal for a while after start; only this long counts as "no GPS". */
+export const NO_GPS_GRACE_MS = 30000;
+
 export type GuidanceOptions = {
+  /** Devices without GPS or compass. Default "warn". */
+  noGps?: NoGpsPolicy;
+  /** Current time (epoch ms), for tests. Default Date.now(). */
+  now?: number;
   /** The game cannot be played without the compass. Default false (it continues without). */
   requireCompass?: boolean;
   /** Keep the "finding your position" screen until the first fix. Default true. */
@@ -43,6 +60,13 @@ export function getGuidance(state: GeoKitState, options: GuidanceOptions = {}): 
   const dismissed = options.dismissed ?? new Set<ScreenId>();
   const requireCompass = options.requireCompass === true;
   const waitForFix = options.waitForFix !== false;
+  const policy: NoGpsPolicy = options.noGps ?? 'warn';
+  const now = options.now ?? Date.now();
+  // A position that stays coarse means the device estimates it from Wi-Fi or the network.
+  const noGps = !!loc?.fix && loc.coarseSince != null
+    && (!device.mobile || now - loc.coarseSince >= NO_GPS_GRACE_MS);
+  // Computers have no compass; troubleshooting steps for phones would not help there.
+  const noCompassDevice = !!compass && !device.mobile && ['missing', 'no-north', 'unsupported'].includes(compass.status);
 
   const lamps = {
     location: loc ? locationLamp(loc.status) : null,
@@ -55,7 +79,7 @@ export function getGuidance(state: GeoKitState, options: GuidanceOptions = {}): 
   if (options.forced) return result(options.forced);
 
   const block = (id: ScreenId) => !dismissed.has(id);
-  if (!device.mobile && !state.started && block('desktop')) return result('desktop');
+  if (!device.mobile && !state.started && policy !== 'allow' && (policy === 'block' || block('desktop'))) return result('desktop');
   if (!state.started) return result('intro');
 
   // Problems that stop everything.
@@ -64,8 +88,12 @@ export function getGuidance(state: GeoKitState, options: GuidanceOptions = {}): 
   if (loc?.status === 'blocked') return result('location-blocked');
   if (loc?.status === 'denied') return result('location-denied');
 
+  // Devices without GPS / compass, handled by the project's policy.
+  if (noGps && policy !== 'allow' && (policy === 'block' || block('no-gps'))) return result('no-gps');
+  if (noCompassDevice && (requireCompass || policy === 'block')) return result('no-compass-device');
+
   // Compass problems: blocking when required, otherwise shown once and then dismissible.
-  const compassScreen: ScreenId | null = !compass ? null
+  const compassScreen: ScreenId | null = !compass || noCompassDevice ? null
     : compass.needsGesture && compass.status === 'off' ? 'compass-tap'
     : compass.status === 'denied' ? 'compass-denied'
     : compass.status === 'missing' ? 'compass-missing'
@@ -77,10 +105,10 @@ export function getGuidance(state: GeoKitState, options: GuidanceOptions = {}): 
   if (loc?.status === 'requesting' || compass?.status === 'requesting') return result('requesting');
   if (loc && waitForFix && !loc.fix && block('waiting')) return result('waiting');
 
-  return result(null, pickBar(state));
+  return result(null, pickBar(state, noGps));
 }
 
-function pickBar(state: GeoKitState): BarId | null {
+function pickBar(state: GeoKitState, noGps: boolean): BarId | null {
   const { location: loc, compass, direction } = state;
   if (loc) {
     if (loc.status === 'stale') return 'stale';
@@ -90,8 +118,12 @@ function pickBar(state: GeoKitState): BarId | null {
     if (compass.status === 'pose') return compass.hint === 'hold-up' ? 'hold-up' : compass.hint === 'hold-lower' ? 'hold-lower' : 'flatter';
     if (compass.needsCalibration && compass.status === 'ok') return 'calibrate';
     if (compass.status === 'stale') return direction.source === 'course' ? 'course' : 'compass-stale';
-    if (['denied', 'missing', 'no-north', 'unsupported'].includes(compass.status)) return direction.source === 'course' ? 'course' : 'no-compass';
+    if (['denied', 'missing', 'no-north', 'unsupported'].includes(compass.status)) {
+      if (direction.source === 'course') return 'course';
+      return state.device.mobile ? 'no-compass' : 'no-compass-device';
+    }
   }
+  if (noGps) return 'coarse';
   if (loc?.status === 'weak') return 'weak';
   return null;
 }

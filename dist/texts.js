@@ -34,6 +34,10 @@ export const en = {
     unsupportedBody: 'This browser cannot share location or direction. Try another browser on your phone.',
     desktopTitle: 'Use your phone',
     desktopBody: '{app} is played outdoors with a phone. Open this page on your phone for location and compass.',
+    noGpsTitle: 'This device has no GPS',
+    noGpsBody: 'It only knows roughly where you are (±{accuracy} m), from Wi-Fi or the internet connection. {app} needs a phone with GPS.',
+    noCompassDeviceTitle: 'This device has no compass',
+    noCompassDeviceBody: '{app} needs to know which way you point. Open it on a phone.',
     stepsLocationIos: [
         'Tap “aA” (or the page icon) in the address bar.',
         'Choose Website Settings → Location → Allow.',
@@ -82,6 +86,8 @@ export const en = {
     barCalibrate: 'Compass unsure. Tap to calibrate.',
     barCourse: 'Direction from walking (no compass).',
     barNoCompass: 'Playing without compass.',
+    barCoarse: 'Rough position only (±{accuracy} m). This device has no GPS.',
+    barNoCompassDevice: 'This device has no compass.',
 };
 export const sv = {
     app: 'spelet',
@@ -119,6 +125,10 @@ export const sv = {
     unsupportedBody: 'Den här webbläsaren kan inte dela plats eller riktning. Prova en annan webbläsare i telefonen.',
     desktopTitle: 'Använd telefonen',
     desktopBody: '{app} spelas utomhus med en telefon. Öppna sidan i telefonen för plats och kompass.',
+    noGpsTitle: 'Enheten saknar GPS',
+    noGpsBody: 'Den vet bara ungefär var du är (±{accuracy} m), utifrån wifi eller internetanslutningen. {app} behöver en telefon med GPS.',
+    noCompassDeviceTitle: 'Enheten saknar kompass',
+    noCompassDeviceBody: '{app} behöver veta åt vilket håll du pekar. Öppna det i en telefon.',
     stepsLocationIos: [
         'Tryck på ”aA” (eller sidikonen) i adressfältet.',
         'Välj Webbplatsinställningar → Plats → Tillåt.',
@@ -167,6 +177,8 @@ export const sv = {
     barCalibrate: 'Kompassen osäker. Tryck för att kalibrera.',
     barCourse: 'Riktning från gången (ingen kompass).',
     barNoCompass: 'Spelar utan kompass.',
+    barCoarse: 'Bara ungefärlig position (±{accuracy} m). Enheten saknar GPS.',
+    barNoCompassDevice: 'Enheten saknar kompass.',
 };
 export const languages = { en, sv };
 /** Texts for a language ("en" default), with project overrides applied. */

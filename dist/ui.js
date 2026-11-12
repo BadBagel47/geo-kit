@@ -97,7 +97,7 @@ export function mountGeoKitUI(kit, options = {}) {
     let lastScreen;
     let ready = false;
     const t = (s) => esc(fill(s, { app: texts.app, accuracy: current().values.accuracy ?? '?' }));
-    const current = () => getGuidance(kit.getState(), { requireCompass: options.requireCompass, waitForFix: options.waitForFix, dismissed, forced });
+    const current = () => getGuidance(kit.getState(), { requireCompass: options.requireCompass, waitForFix: options.waitForFix, noGps: options.noGps, dismissed, forced });
     const lampsHtml = (g) => {
         const lamp = (label, state) => state === null ? '' :
             `<span class="gk-lamp" data-state="${state}">${esc(label)} <span class="gk-lamp-label">${esc(texts.lamp[state])}</span></span>`;
@@ -116,6 +116,7 @@ export function mountGeoKitUI(kit, options = {}) {
         const p = (text, muted = false) => text ? `<p class="gk-text${muted ? ' gk-muted' : ''}">${t(text)}</p>` : '';
         const compassLine = s.mode === 'aim' ? (s.pitchEnabled ? texts.introCompassPitch : texts.introCompassAim) : texts.introCompassMap;
         const withoutCompass = options.requireCompass ? '' : button(texts.continueWithoutCompass, `dismiss:${screen}`);
+        const canContinue = (options.noGps ?? 'warn') === 'warn';
         switch (screen) {
             case 'intro':
                 return card(texts.introTitle, p(texts.introBody)
@@ -128,7 +129,11 @@ export function mountGeoKitUI(kit, options = {}) {
             case 'waiting':
                 return card(texts.waitingTitle, '<div class="gk-spinner" aria-hidden="true"></div>' + p(texts.waitingBody) + lampsHtml(g));
             case 'desktop':
-                return card(texts.desktopTitle, p(texts.desktopBody) + `<div class="gk-actions">${button(texts.continueAnyway, 'dismiss:desktop')}</div>`);
+                return card(texts.desktopTitle, p(texts.desktopBody) + (canContinue ? `<div class="gk-actions">${button(texts.continueAnyway, 'dismiss:desktop')}</div>` : ''));
+            case 'no-gps':
+                return card(texts.noGpsTitle, p(texts.noGpsBody) + (canContinue ? `<div class="gk-actions">${button(texts.continueAnyway, 'dismiss:no-gps', true)}</div>` : ''));
+            case 'no-compass-device':
+                return card(texts.noCompassDeviceTitle, p(texts.noCompassDeviceBody));
             case 'insecure':
                 return card(texts.insecureTitle, p(texts.insecureBody));
             case 'unsupported':
@@ -154,12 +159,13 @@ export function mountGeoKitUI(kit, options = {}) {
     const barText = {
         searching: 'barSearching', weak: 'barWeak', stale: 'barStale', flatter: 'barFlatter', 'hold-up': 'barHoldUp',
         'hold-lower': 'barHoldLower', 'compass-stale': 'barCompassStale', calibrate: 'barCalibrate', course: 'barCourse', 'no-compass': 'barNoCompass',
+        coarse: 'barCoarse', 'no-compass-device': 'barNoCompassDevice',
     };
     function render() {
         const g = current();
         const showBar = options.showBar !== false && !g.screen && g.bar;
         // Only rebuild when something visible changed, so focus and animations are kept.
-        const signature = JSON.stringify([g.screen, showBar ? g.bar : null, g.lamps, g.screen === 'calibrate' ? kit.getState().compass?.status === 'ok' : 0, showBar && g.bar === 'weak' ? g.values.accuracy : 0, kit.getState().device.ios]);
+        const signature = JSON.stringify([g.screen, showBar ? g.bar : null, g.lamps, g.screen === 'calibrate' ? kit.getState().compass?.status === 'ok' : 0, (showBar && (g.bar === 'weak' || g.bar === 'coarse')) || g.screen === 'no-gps' ? g.values.accuracy : 0, kit.getState().device.ios]);
         if (signature === lastSignature)
             return;
         lastSignature = signature;
@@ -169,7 +175,7 @@ export function mountGeoKitUI(kit, options = {}) {
             html += `<div class="gk-overlay">${screenHtml(g.screen, g)}</div>`;
         if (showBar && g.bar) {
             const action = g.barAction ? ` role="button" tabindex="0" data-gk-action="${g.barAction}"` : ' role="status"';
-            const lamp = g.bar === 'searching' || g.bar === 'calibrate' || g.bar === 'course' ? 'busy' : g.bar === 'no-compass' ? 'off' : 'warn';
+            const lamp = g.bar === 'searching' || g.bar === 'calibrate' || g.bar === 'course' ? 'busy' : g.bar === 'no-compass' || g.bar === 'no-compass-device' ? 'off' : 'warn';
             html += `<div class="gk-bar gk-bar--${options.barPosition ?? 'top'}"${action}><span class="gk-lamp" data-state="${lamp}" aria-hidden="true"></span><span>${t(texts[barText[g.bar]])}</span></div>`;
         }
         root.innerHTML = html;

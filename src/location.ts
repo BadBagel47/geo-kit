@@ -27,6 +27,11 @@ export type LocationState = {
   fix: Fix | null;
   /** Browser permission as last reported by the Permissions API, when available. */
   permission: PermissionState | null;
+  /**
+   * Epoch ms since when every fix has been coarser than `coarseAccuracy` (typical for
+   * devices without GPS, which estimate the position from Wi-Fi or the network), or null.
+   */
+  coarseSince: number | null;
 };
 
 export type LocationOptions = {
@@ -36,6 +41,8 @@ export type LocationOptions = {
   staleMs?: number;
   /** Minimum speed (m/s) before the travel direction is reported. Default 0.7. */
   courseMinSpeed?: number;
+  /** Accuracy (m) worse than this suggests a device without GPS. Default 200. */
+  coarseAccuracy?: number;
 };
 
 export const isFresh = (fix: Fix | null, maxAgeMs = 5000, now = Date.now()): fix is Fix =>
@@ -47,7 +54,7 @@ function pageMayAskForLocation(): boolean {
 }
 
 export class LocationController {
-  state: LocationState = { status: 'off', fix: null, permission: null };
+  state: LocationState = { status: 'off', fix: null, permission: null, coarseSince: null };
   private watchId: number | null = null;
   private session = 0;
   private attempted = false;
@@ -56,11 +63,13 @@ export class LocationController {
   private readonly weakAccuracy: number;
   private readonly staleMs: number;
   private readonly courseMinSpeed: number;
+  private readonly coarseAccuracy: number;
 
   constructor(options: LocationOptions, private readonly onChange: () => void, private readonly log?: (e: Record<string, unknown>) => void) {
     this.weakAccuracy = options.weakAccuracy ?? 25;
     this.staleMs = options.staleMs ?? 20000;
     this.courseMinSpeed = options.courseMinSpeed ?? 0.7;
+    this.coarseAccuracy = options.coarseAccuracy ?? 200;
   }
 
   /**
@@ -114,7 +123,7 @@ export class LocationController {
     this.session++;
     this.attempted = false;
     this.teardown();
-    this.state = { status: 'off', fix: null, permission: this.state.permission };
+    this.state = { status: 'off', fix: null, permission: this.state.permission, coarseSince: null };
     this.onChange();
   }
 
@@ -141,7 +150,8 @@ export class LocationController {
     };
     // Coordinates are deliberately not logged (privacy of diagnostic reports).
     this.log?.({ kind: 'gps', accuracy: fix.accuracy, speed, course });
-    this.set({ fix, status: fix.accuracy > this.weakAccuracy ? 'weak' : 'ok' });
+    const coarseSince = fix.accuracy > this.coarseAccuracy ? (this.state.coarseSince ?? Date.now()) : null;
+    this.set({ fix, coarseSince, status: fix.accuracy > this.weakAccuracy ? 'weak' : 'ok' });
   }
 
   private failed(error: GeolocationPositionError, session: number): void {

@@ -18,6 +18,11 @@ export type LocationState = {
     fix: Fix | null;
     /** Browser permission as last reported by the Permissions API, when available. */
     permission: PermissionState | null;
+    /**
+     * Epoch ms since when every fix has been coarser than `coarseAccuracy` (typical for
+     * devices without GPS, which estimate the position from Wi-Fi or the network), or null.
+     */
+    coarseSince: number | null;
 };
 export type LocationOptions = {
     /** Accuracy (m) worse than this gives status "weak". Default 25. */
@@ -26,6 +31,8 @@ export type LocationOptions = {
     staleMs?: number;
     /** Minimum speed (m/s) before the travel direction is reported. Default 0.7. */
     courseMinSpeed?: number;
+    /** Accuracy (m) worse than this suggests a device without GPS. Default 200. */
+    coarseAccuracy?: number;
 };
 export declare const isFresh: (fix: Fix | null, maxAgeMs?: number, now?: number) => fix is Fix;
 export declare class LocationController {
@@ -40,6 +47,7 @@ export declare class LocationController {
     private readonly weakAccuracy;
     private readonly staleMs;
     private readonly courseMinSpeed;
+    private readonly coarseAccuracy;
     constructor(options: LocationOptions, onChange: () => void, log?: ((e: Record<string, unknown>) => void) | undefined);
     /**
      * Ask the Permissions API whether location is already allowed. Resolves "granted",

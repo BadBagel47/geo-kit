@@ -156,6 +156,35 @@ try {
     await context.close();
   });
 
+  await check('computers without GPS: warn, block and allow', async () => {
+    const desktopPage = async query => {
+      const context = await browser.newContext({ viewport: { width: 1200, height: 800 } });
+      const page = await context.newPage();
+      page.on('pageerror', e => errors.push(`${query}: ${e.message}`));
+      await page.goto(base + '?' + query);
+      await slider(page, 'accuracy', 900);
+      return page;
+    };
+    const warn = await desktopPage('mode=none&sim=1&nogps=warn');
+    await warn.getByRole('button', { name: 'Continue anyway' }).click();
+    await warn.getByRole('button', { name: 'Allow and start' }).click();
+    await warn.getByRole('heading', { name: 'This device has no GPS' }).waitFor();
+    await warn.screenshot({ path: join(shots, 'no-gps-warn.png') });
+    await warn.getByRole('button', { name: 'Continue anyway' }).click();
+    await warn.getByText('Rough position only (±900 m)').waitFor();
+    await warn.context().close();
+
+    const blocked = await desktopPage('mode=none&sim=1&nogps=block');
+    await blocked.getByRole('heading', { name: 'Use your phone' }).waitFor();
+    assert.equal(await blocked.getByRole('button', { name: 'Continue anyway' }).count(), 0);
+    await blocked.context().close();
+
+    const allowed = await desktopPage('mode=map&sim=1&nogps=allow');
+    await allowed.getByRole('button', { name: 'Allow and start' }).click();
+    await allowed.getByText('Rough position only (±900 m)').waitFor();
+    await allowed.context().close();
+  });
+
   assert.deepEqual(errors, [], 'no console errors');
   console.log(`\n${passed} browser checks passed`);
 } finally {
