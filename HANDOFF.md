@@ -1,6 +1,6 @@
 # geo-kit – Handoff
 
-- **Rules version:** adapted to agent rules v1.1.
+- **Rules version:** adapted to agent rules v1.2.
 - Inventory: 2026-11-11
 - **Publishing:** GitHub Pages from `main`, folder `/` (root `index.html` redirects to `demo/`): https://badbagel47.github.io/geo-kit/demo/. Every push to `main` publishes. Other projects use the library through a git tag (see [docs/INTEGRATION.md](docs/INTEGRATION.md)).
 - **Project language:** English (README, code, docs). The player-facing texts ship in English and Swedish; each game picks its language.
@@ -85,8 +85,8 @@ These are the project rules (linked from AGENTS.md).
 
 ## Latest entries
 
+- 2026-11-12 – Adapted to agent rules v1.2 (wording only, no repo changes needed).
 - 2026-11-12 – Automatic releases via GitHub Actions (adaptation 1.1).
 - 2026-11-12 – Adapted to agent rules v1.1: Decisions section, project language, environment limitations, one-time actions, legal review (D-010, D-011), neutral model levels in the backlog.
 - 2026-11-12 – Fixed the test page dial spinning across north (B-009). Found the same kind of spin in wacka and noxari (added to D-007).
 - 2026-11-12 – Devices without GPS/compass, version 0.2.0 (F-008).
-- 2026-11-11 – Repo inventory, analysis of blaster/wacka/noxari, version 0.1.0 with tests, test page and docs (D-001, F-002, F-003, F-004).
