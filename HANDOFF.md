@@ -8,20 +8,12 @@
 
 ## Current state
 
-Version 0.2.0 is built and tested automatically (25 unit tests, 9 browser checks with simulated sensors). No release tag exists yet: the owner creates `v0.2.0` on github.com (see One-time actions). The owner's first phone test found the test page dial spinning across north (B-009, fixed). The library has **not yet been fully tested on real phones outdoors** (D-005); the iPhone handling is untested on a device.
+Version 0.2.0 is built and tested automatically (25 unit tests, 9 browser checks with simulated sensors). Releases are created automatically by `.github/workflows/release.yml`. The owner's first phone test found the test page dial spinning across north (B-009, fixed). The library has **not yet been fully tested on real phones outdoors** (D-005); the iPhone handling is untested on a device.
 
 ## Next steps
 
-1. Owner: create release `v0.2.0` (link under One-time actions), or approve the pending adaptation item that automates releases.
-2. D-005 (field test): the owner tests the test page on a phone outdoors and downloads a report if something looks wrong.
-3. D-007 (notes for the existing games): see the backlog.
-
-## Pending adaptation
-
-Shown to the owner 2026-11-12, not yet approved:
-
-- **1 – Automatic releases**
-  - 1.1 Add a GitHub Action that creates the release tag `vX.Y.Z` automatically when the version in `package.json` changes on `main`. Removes the recurring manual release step. Agents may lack permission to create workflow files; then the owner adds the file once via github.com.
+1. D-005 (field test): the owner tests the test page on a phone outdoors and downloads a report if something looks wrong.
+2. D-007 (notes for the existing games): see the backlog.
 
 ## Decisions
 
@@ -50,7 +42,7 @@ These are the project rules (linked from AGENTS.md).
 
 - Source is TypeScript in `src/`. `dist/` is **committed** so projects can use the library without a build step. Always run `npm run build` and commit `dist/` together with source changes.
 - `npm test` builds and runs the unit tests. `npm run test:browser` runs the demo page in Chromium with simulated sensors (set `CHROME_PATH` to use an installed Chrome).
-- Bump `version` in both `package.json` and `src/version.ts`, and create a git tag `vX.Y.Z` for each release that projects should use. Do not move existing tags. If pushing tags is refused, ask the owner to create the release: `https://github.com/BadBagel47/geo-kit/releases/new?tag=vX.Y.Z&target=main&title=vX.Y.Z`.
+- To release: bump `version` in both `package.json` and `src/version.ts` and push to `main`. The Release workflow then creates the tag and GitHub release `vX.Y.Z` (it fails if the two versions differ). Do not move existing tags. It can also be started by hand under Actions → Release → Run workflow.
 - Player-facing texts live in `src/texts.ts` (English and Swedish). Keep both languages complete; a unit test checks that.
 - Anything on screen that rotates with a heading uses `continuousAngle()` (B-009).
 - No runtime dependencies.
@@ -65,7 +57,7 @@ These are the project rules (linked from AGENTS.md).
 ## One-time actions
 
 - Done 2026-11-12: GitHub Pages enabled (owner).
-- Pending: create release `v0.2.0`: https://github.com/BadBagel47/geo-kit/releases/new?tag=v0.2.0&target=main&title=v0.2.0 (owner), or approve adaptation item 1.1 to automate it.
+- Done 2026-11-12: automatic releases (`.github/workflows/release.yml`), approved by the owner as adaptation item 1.1.
 
 ## Documentation map
 
@@ -93,6 +85,7 @@ These are the project rules (linked from AGENTS.md).
 
 ## Latest entries
 
+- 2026-11-12 – Automatic releases via GitHub Actions (adaptation 1.1).
 - 2026-11-12 – Adapted to agent rules v1.1: Decisions section, project language, environment limitations, one-time actions, legal review (D-010, D-011), neutral model levels in the backlog.
 - 2026-11-12 – Fixed the test page dial spinning across north (B-009). Found the same kind of spin in wacka and noxari (added to D-007).
 - 2026-11-12 – Devices without GPS/compass, version 0.2.0 (F-008).

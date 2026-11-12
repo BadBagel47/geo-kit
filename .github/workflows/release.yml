@@ -1,0 +1,44 @@
+# Creates the git tag and GitHub release vX.Y.Z when the version in package.json
+# changes on main. Projects pin geo-kit to these tags (see docs/INTEGRATION.md).
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - .github/workflows/release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          code=$(sed -n "s/.*VERSION = '\(.*\)'.*/\1/p" src/version.ts)
+          if [ "$version" != "$code" ]; then
+            echo "::error::package.json ($version) and src/version.ts ($code) differ"
+            exit 1
+          fi
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create release if missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG already exists, nothing to do"
+            exit 0
+          fi
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
