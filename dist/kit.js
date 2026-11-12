@@ -4,6 +4,8 @@
  */
 import { HeadingController, needsMotionPermission } from './heading.js';
 import { LocationController } from './location.js';
+import { magneticDeclination } from './wmm.js';
+import { distanceMeters, normalizeDegrees } from './math.js';
 function detectDevice() {
     if (typeof navigator === 'undefined')
         return { ios: false, android: false, mobile: false, secure: false, motionNeedsTap: false };
@@ -23,6 +25,8 @@ export class GeoKit {
         this.device = detectDevice();
         this.started = false;
         this.notifyQueued = false;
+        this.declination = null;
+        this.declinationAt = null;
         /** Current state. Same object until something changes (safe for useSyncExternalStore). */
         this.getState = () => this.state;
         this.subscribe = (listener) => {
@@ -58,8 +62,15 @@ export class GeoKit {
     stop() { this.started = false; this.head?.stop(); this.loc?.stop(); this.changed(); }
     destroy() { this.head?.destroy(); this.loc?.destroy(); this.listeners.clear(); }
     /** Treat the direction the phone points now as north. Returns false if no heading yet. */
-    alignNorth() { return this.head?.alignNorth() ?? false; }
-    /** Fixed correction in degrees (e.g. magnetic declination or a known offset). */
+    alignNorth() {
+        if (!this.head?.alignNorth())
+            return false;
+        // The player points at true north: compensate for the declination added later.
+        if (this.useTrueNorth() && this.declination !== null)
+            this.head.setOffset(this.head.getOffset() - this.declination);
+        return true;
+    }
+    /** Fixed correction in degrees on top of the automatic true-north correction (e.g. a known device offset). */
     setHeadingOffset(degrees) { this.head?.setOffset(degrees); }
     resetAlignment() { this.head?.resetAlignment(); }
     /** Diagnostic report for bug hunting. Contains sensor values and GPS accuracy, never coordinates. */
@@ -105,20 +116,42 @@ export class GeoKit {
     compute() {
         const location = this.loc ? this.loc.state : null;
         const compass = this.head ? this.head.state : null;
-        let direction = { heading: null, pitch: null, source: null };
+        this.updateDeclination(location?.fix ?? null);
+        const decl = this.useTrueNorth() ? this.declination : null;
+        const fromCompass = (heading, pitch) => ({
+            heading: decl === null ? heading : normalizeDegrees(Math.round((heading + decl) * 10) / 10),
+            pitch, source: 'compass', north: decl === null ? 'magnetic' : 'true', declination: decl,
+        });
+        let direction = { heading: null, pitch: null, source: null, north: null, declination: null };
         if (compass && compass.heading !== null && ['ok', 'pose'].includes(compass.status)) {
-            direction = { heading: compass.heading, pitch: compass.pitch, source: 'compass' };
+            direction = fromCompass(compass.heading, compass.pitch);
         }
         else if (this.courseFallback && location?.fix?.course != null && (location.status === 'ok' || location.status === 'weak')) {
-            direction = { heading: location.fix.course, pitch: null, source: 'course' };
+            direction = { heading: location.fix.course, pitch: null, source: 'course', north: 'true', declination: null };
         }
         else if (compass && compass.heading !== null && compass.status === 'stale') {
-            direction = { heading: compass.heading, pitch: compass.pitch, source: 'compass' };
+            direction = fromCompass(compass.heading, compass.pitch);
         }
         return {
             started: this.started, location, compass, direction, device: this.device,
             mode: this.options.heading || null, pitchEnabled: this.options.heading === 'aim' && this.options.pitch === true,
         };
+    }
+    useTrueNorth() { return this.options.trueNorth !== false; }
+    /** Recompute the declination for the first fix and after moving more than 5 km. */
+    updateDeclination(fix) {
+        if (!this.useTrueNorth() || !fix)
+            return;
+        if (this.declinationAt && distanceMeters(this.declinationAt, fix) < 5000)
+            return;
+        try {
+            const value = magneticDeclination(fix.lat, fix.lon);
+            if (Number.isFinite(value)) {
+                this.declination = Math.round(value * 10) / 10;
+                this.declinationAt = { lat: fix.lat, lon: fix.lon };
+            }
+        }
+        catch { /* keep magnetic headings */ }
     }
     changed() {
         this.state = this.compute();

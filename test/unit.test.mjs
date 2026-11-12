@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { OrientationTracker, ZoneMonitor, continuousAngle, distanceMeters, bearingDegrees, relativeBearing, angleDelta, getGuidance, en, sv, getTexts, fill } from '../dist/index.js';
 import { matrixFromEuler } from '../dist/math.js';
+import { magneticDeclination, decimalYear } from '../dist/wmm.js';
 
 const close = (actual, expected, tolerance = 0.5, message = '') =>
   assert.ok(Math.abs(angleDelta(expected, actual)) <= tolerance, `${message} expected ${expected}, got ${actual}`);
@@ -240,4 +241,27 @@ test('continuousAngle turns the short way across north', () => {
   assert.equal(continuousAngle(359, 1), 361);
   assert.equal(continuousAngle(-359, -1), -361);
   assert.equal(continuousAngle(720, 10), 730);
+});
+
+test('WMM2025 declination matches NOAA test values', () => {
+  // A sample of NOAA's official WMM2025 test values: [year, altitude km, lat, lon, declination].
+  const rows = [
+    [2025, 94, -29, -110, 15.74],
+    [2025.5, 8, -66, 17, -33.14],
+    [2026, 33, -3, -147, 9.71],
+    [2026.5, 12, -82, -68, 29.79],
+    [2026.5, 86, -11, 167, 10.24],
+    [2027, 38, 27, -169, 8.48],
+    [2027.5, 73, -72, 95, -102.64],
+    [2028, 86, -85, -79, 41.09],
+    [2028.5, 68, -58, 156, 41.57],
+    [2028.5, 95, 30, 28, 4.56],
+    [2029, 90, -55, -171, 38.65],
+    [2029.5, 66, -21, 32, -14.63],
+  ];
+  for (const [year, alt, lat, lon, expected] of rows) {
+    const actual = magneticDeclination(lat, lon, year, alt);
+    assert.ok(Math.abs(actual - expected) < 0.01, `${year} ${lat},${lon}: expected ${expected}, got ${actual}`);
+  }
+  assert.ok(Math.abs(decimalYear(new Date(Date.UTC(2026, 6, 2, 12))) - 2026.5) < 0.01);
 });

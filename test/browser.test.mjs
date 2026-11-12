@@ -47,7 +47,7 @@ async function check(name, fn) {
 
 try {
   await check('map mode: intro, start, heading follows the phone', async () => {
-    const page = await open('mode=map&sim=1');
+    const page = await open('mode=map&sim=1&north=magnetic');
     await page.getByRole('heading', { name: 'Before you start' }).waitFor();
     await page.screenshot({ path: join(shots, 'intro-light.png') });
     await page.getByRole('button', { name: 'Allow and start' }).click();
@@ -71,7 +71,7 @@ try {
   });
 
   await check('aim mode with up/down reports pitch', async () => {
-    const page = await open('mode=aim-pitch&sim=1&theme=dark');
+    const page = await open('mode=aim-pitch&sim=1&theme=dark&north=magnetic');
     await page.getByRole('button', { name: 'Allow and start' }).click();
     await slider(page, 'beta', 120);
     await page.waitForFunction(() => document.querySelector('dd[data-key="Up/down"]')?.textContent === '30°');
@@ -81,7 +81,7 @@ try {
   });
 
   await check('denied GPS shows Android steps and retry', async () => {
-    const page = await open('mode=map&sim=1&theme=terminal');
+    const page = await open('mode=map&sim=1&theme=terminal&north=magnetic');
     await page.evaluate(() => { window.geoKitSim.denyGps = true; });
     await page.getByRole('button', { name: 'Allow and start' }).click();
     await page.getByRole('heading', { name: 'Location is blocked' }).waitFor();
@@ -97,7 +97,7 @@ try {
   });
 
   await check('compass stopping gives a stale bar; no data at all gives a dismissible screen', async () => {
-    const page = await open('mode=aim&sim=1&lang=sv&theme=parchment');
+    const page = await open('mode=aim&sim=1&lang=sv&theme=parchment&north=magnetic');
     await page.getByRole('heading', { name: 'Innan du börjar' }).waitFor();
     await page.screenshot({ path: join(shots, 'intro-parchment-sv.png') });
     await page.getByRole('button', { name: 'Tillåt och starta' }).click();
@@ -107,7 +107,7 @@ try {
     await page.getByText('Kompassen pausad').waitFor({ timeout: 6000 });
     await page.context().close();
 
-    const silent = await open('mode=aim&sim=1&lang=sv');
+    const silent = await open('mode=aim&sim=1&lang=sv&north=magnetic');
     await silent.evaluate(() => { window.geoKitSim.compassOn = false; });
     await silent.getByRole('button', { name: 'Tillåt och starta' }).click();
     await silent.getByRole('heading', { name: 'Ingen kompassignal' }).waitFor({ timeout: 12000 });
@@ -118,7 +118,7 @@ try {
   });
 
   await check('required compass cannot be skipped', async () => {
-    const page = await open('mode=aim&sim=1&require=1');
+    const page = await open('mode=aim&sim=1&require=1&north=magnetic');
     await page.evaluate(() => { window.geoKitSim.compassOn = false; });
     await page.getByRole('button', { name: 'Allow and start' }).click();
     await page.getByRole('heading', { name: 'No compass signal' }).waitFor({ timeout: 12000 });
@@ -127,7 +127,7 @@ try {
   });
 
   await check('calibration screen and north alignment', async () => {
-    const page = await open('mode=map&sim=1');
+    const page = await open('mode=map&sim=1&north=magnetic');
     await page.getByRole('button', { name: 'Allow and start' }).click();
     await slider(page, 'alpha', 40);
     await page.waitForFunction(() => document.querySelector('dd[data-key="Heading"]')?.textContent?.startsWith('320°'));
@@ -142,7 +142,7 @@ try {
   });
 
   await check('target test: arrival needs several fixes', async () => {
-    const page = await open('mode=map&sim=1');
+    const page = await open('mode=map&sim=1&north=magnetic');
     await page.evaluate(() => localStorage.removeItem('geo-kit-demo-target'));
     await page.getByRole('button', { name: 'Allow and start' }).click();
     await page.locator('.gk-overlay').waitFor({ state: 'detached' });
@@ -151,6 +151,24 @@ try {
     assert.equal(await value(page, 'At target'), 'no');
     await slider(page, 'north', 38);
     await page.waitForFunction(() => document.querySelector('dd[data-key="At target"]')?.textContent === 'yes', null, { timeout: 8000 });
+    await page.context().close();
+  });
+
+  await check('true north: compass heading corrected with the World Magnetic Model', async () => {
+    const page = await open('mode=map&sim=1');
+    await page.getByRole('button', { name: 'Allow and start' }).click();
+    await page.locator('.gk-overlay').waitFor({ state: 'detached' });
+    // Uppsala: magnetic north is about 7.7° east of true north (WMM2025, late 2026).
+    await page.waitForFunction(() => document.querySelector('dd[data-key="Heading"]')?.textContent?.startsWith('8°'));
+    assert.match(await value(page, 'North'), /^true \(declination \+7\.\d°\)$/);
+    await slider(page, 'alpha', 40);
+    await page.waitForFunction(() => document.querySelector('dd[data-key="Heading"]')?.textContent?.startsWith('328°'));
+    await page.waitForTimeout(1000); // let the smoothing settle, as a player holding still would
+    await page.getByRole('button', { name: 'Calibrate screen' }).click();
+    await page.getByRole('button', { name: 'This is north' }).click();
+    await page.waitForTimeout(600);
+    const aligned = parseFloat(await value(page, 'Heading'));
+    assert.ok(aligned <= 1 || aligned >= 359, `after aligning to true north the heading was ${aligned}°`);
     await page.context().close();
   });
 

@@ -40,7 +40,7 @@ How geo-kit spots a device without GPS: a computer is recognised directly; on ph
 **Projects with npm (Vite, React…).** Use a tag so the project never changes by surprise:
 
 ```sh
-npm install github:BadBagel47/geo-kit#v0.2.0
+npm install github:BadBagel47/geo-kit#v0.3.0
 ```
 
 ```js
@@ -50,7 +50,7 @@ import { GeoKit, mountGeoKitUI } from 'geo-kit';
 **Projects without a build step** (plain HTML/JS):
 
 ```js
-import { GeoKit, mountGeoKitUI } from 'https://cdn.jsdelivr.net/gh/BadBagel47/geo-kit@v0.2.0/dist/index.js';
+import { GeoKit, mountGeoKitUI } from 'https://cdn.jsdelivr.net/gh/BadBagel47/geo-kit@v0.3.0/dist/index.js';
 ```
 
 The page must be served over `https://` (or `localhost`) for sensors to work.
@@ -105,10 +105,22 @@ All texts can be replaced through `texts`. Write `introBody` for the specific ga
 - `ZoneMonitor` for "has the player arrived?": enters after 3 fixes inside the radius within 3 s, leaves only after 2 s beyond the exit radius, ignores inaccurate or old fixes. Defaults 15 m / 35 m.
 - `isFresh(fix, maxAgeMs)` before trusting a position.
 - `continuousAngle(previous, next)` whenever something on screen rotates with the heading (needle, map, arrow), especially with CSS transitions or animations. Without it, crossing north (359° → 1°) makes the element spin almost a full turn.
-- `kit.alignNorth()`, `kit.setHeadingOffset(deg)`, `kit.resetAlignment()` for manual corrections. Headings are magnetic north; in Uppsala true north is about 6° different.
+- `kit.alignNorth()`, `kit.setHeadingOffset(deg)`, `kit.resetAlignment()` for manual corrections.
+- **True north is automatic** (`trueNorth: true`, default): compass headings are corrected with the World Magnetic Model (WMM2025) at the player's position, so they match maps and `bearingDegrees()`. In Uppsala the correction is about +7.7° (2026). Until the first GPS position arrives the heading is magnetic; `direction.north` tells which (`'true'` or `'magnetic'`). Turn it off with `trueNorth: false` only if the game really wants magnetic north. `magneticDeclination(lat, lon)` is exported too. The model is valid until 2030; then the coefficients in `src/wmm.ts` need replacing with WMM2030.
 - `kit.downloadReport()` for bug reports from the field (no coordinates included).
 
-## 7. Before you finish
+## 7. Location and privacy
+
+geo-kit itself keeps positions in the browser: it never sends them anywhere and its diagnostic reports contain no coordinates. The game can still create obligations. Flag these to the owner (per the global agent rules on laws and regulations), with a recommendation:
+
+- **The game sends or saves positions** (a server, a database, high scores with places, analytics, shared multiplayer positions): a player's location is personal data under the GDPR. The game then needs a short privacy notice (what is collected, why, for how long, who gets it) and must not collect more than it needs. Point to the notice from the start screen with `texts.introPrivacy`, e.g. "We save your route for 24 hours to show your score. Read more: example.com/privacy".
+- **Positions only stay in the player's browser** (the usual case): no data reaches the owner. A friendly line in `introPrivacy` such as "Your position stays on your phone." is still good practice, but only write it if it is true for the whole game.
+- **Storage in the browser** (localStorage, cookies): storage that is needed for something the player asked for (e.g. saving their progress) is generally allowed without consent; storage for analytics or ads needs consent (Swedish Electronic Communications Act, chapter 9, section 28).
+- **Children as players**: be extra careful with any location data that leaves the device.
+
+This is not legal advice. Official guidance: https://www.imy.se/ (data protection) and https://www.pts.se/ (cookies and storage). Record the owner's decision in the project's HANDOFF.md.
+
+## 8. Before you finish
 
 - Test on the project's own pages, and ask the owner to try it outdoors on a phone.
 - Game coordinates (targets, caches, routes) in client code are project-sensitive information under the shared rules. geo-kit does not protect them; flag them and let the owner choose the protection.

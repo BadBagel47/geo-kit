@@ -128,6 +128,8 @@ export class HeadingController {
         this.tracker.setUserOffset(degrees);
         this.set({ aligned: normalizeDegrees(degrees) !== 0 });
     }
+    /** The manual correction currently applied, in degrees. */
+    getOffset() { return this.tracker.getUserOffset(); }
     resetAlignment() {
         this.tracker.setUserOffset(0);
         this.set({ aligned: false });
@@ -210,7 +212,7 @@ export class HeadingController {
         this.everUsable = true;
         const status = out.valid ? 'ok' : 'pose';
         const s = this.state;
-        const heading = out.heading === null ? null : Math.round(out.heading * 10) / 10;
+        const heading = out.heading === null ? null : normalizeDegrees(Math.round(out.heading * 10) / 10);
         const pitch = out.pitch === null ? null : Math.round(out.pitch * 10) / 10;
         if (s.status === status && s.heading === heading && s.pitch === pitch && s.hint === out.hint && s.source === source
             && s.accuracy === out.accuracy && s.needsCalibration === out.needsCalibration)

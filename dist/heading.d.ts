@@ -62,6 +62,8 @@ export declare class HeadingController {
     alignNorth(): boolean;
     /** Add a fixed correction in degrees (positive = turn the reported heading clockwise). */
     setOffset(degrees: number): void;
+    /** The manual correction currently applied, in degrees. */
+    getOffset(): number;
     resetAlignment(): void;
     private set;
     private listen;

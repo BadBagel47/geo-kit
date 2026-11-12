@@ -16,3 +16,4 @@ export type { Texts, TextOverrides } from './texts.js';
 export { mountGeoKitUI, applyTheme, themes, CSS } from './ui.js';
 export type { UIOptions, GeoKitUI, Theme } from './ui.js';
 export { VERSION } from './version.js';
+export { magneticDeclination, decimalYear, WMM_MODEL, WMM_VALID_UNTIL } from './wmm.js';

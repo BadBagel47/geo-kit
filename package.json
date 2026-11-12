@@ -1,6 +1,6 @@
 {
   "name": "geo-kit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "GPS and phone direction (compass, aim, up/down) for location-based web games, with themable permission screens.",
   "type": "module",
   "main": "./dist/index.js",

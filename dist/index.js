@@ -7,3 +7,4 @@ export { getGuidance, NO_GPS_GRACE_MS } from './guidance.js';
 export { getTexts, fill, en, sv, languages } from './texts.js';
 export { mountGeoKitUI, applyTheme, themes, CSS } from './ui.js';
 export { VERSION } from './version.js';
+export { magneticDeclination, decimalYear, WMM_MODEL, WMM_VALID_UNTIL } from './wmm.js';

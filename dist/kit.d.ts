@@ -16,6 +16,11 @@ export type GeoKitOptions = {
     smoothingMs?: number;
     /** Use the GPS direction of travel when the compass is not available (map mode default true, aim false). */
     courseFallback?: boolean;
+    /**
+     * Report compass headings relative to true north (like maps and bearingDegrees) instead of
+     * magnetic north. Uses the World Magnetic Model at the player's GPS position. Default true.
+     */
+    trueNorth?: boolean;
     /** Start automatically on load when location is already allowed. Default true. */
     autoStart?: boolean;
     headingTiming?: HeadingTiming;
@@ -36,6 +41,13 @@ export type DirectionState = {
     pitch: number | null;
     /** "compass" = phone direction, "course" = GPS direction of travel. */
     source: 'compass' | 'course' | null;
+    /**
+     * Which north `heading` refers to. GPS course is always true north. A compass heading is
+     * "magnetic" until the first position is known (or when trueNorth is off).
+     */
+    north: 'true' | 'magnetic' | null;
+    /** Magnetic declination applied to the compass heading, in degrees (east positive), or null. */
+    declination: number | null;
 };
 export type GeoKitState = {
     /** True once start() has been called (or auto start happened). */
@@ -60,6 +72,8 @@ export declare class GeoKit {
     private readonly device;
     private started;
     private notifyQueued;
+    private declination;
+    private declinationAt;
     constructor(options?: GeoKitOptions);
     /** Current state. Same object until something changes (safe for useSyncExternalStore). */
     getState: () => GeoKitState;
@@ -77,7 +91,7 @@ export declare class GeoKit {
     destroy(): void;
     /** Treat the direction the phone points now as north. Returns false if no heading yet. */
     alignNorth(): boolean;
-    /** Fixed correction in degrees (e.g. magnetic declination or a known offset). */
+    /** Fixed correction in degrees on top of the automatic true-north correction (e.g. a known device offset). */
     setHeadingOffset(degrees: number): void;
     resetAlignment(): void;
     /** Diagnostic report for bug hunting. Contains sensor values and GPS accuracy, never coordinates. */
@@ -87,5 +101,8 @@ export declare class GeoKit {
     private tryAutoStart;
     private record;
     private compute;
+    private useTrueNorth;
+    /** Recompute the declination for the first fix and after moving more than 5 km. */
+    private updateDeclination;
     private changed;
 }

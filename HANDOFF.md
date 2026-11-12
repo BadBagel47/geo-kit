@@ -8,7 +8,7 @@
 
 ## Current state
 
-Version 0.2.0 is built and tested automatically (25 unit tests, 9 browser checks with simulated sensors). Releases are created automatically by `.github/workflows/release.yml`. The owner's first phone test found the test page dial spinning across north (B-009, fixed). The library has **not yet been fully tested on real phones outdoors** (D-005); the iPhone handling is untested on a device.
+Version 0.3.0 is built and tested automatically (26 unit tests, 10 browser checks with simulated sensors). 0.3.0 added true north (F-006) and privacy guidance for games (D-011). Releases are created automatically by `.github/workflows/release.yml`. The owner's first phone test found the test page dial spinning across north (B-009, fixed). The library has **not yet been fully tested on real phones outdoors** (D-005); the iPhone handling is untested on a device.
 
 ## Next steps
 
@@ -24,7 +24,7 @@ Version 0.2.0 is built and tested automatically (25 unit tests, 9 browser checks
   - **Fixed pointing mode per project, never automatic switching.** blaster switches between top edge and back of phone at about 76° tilt; with the phone rolled sideways the heading jumps by the roll angle (10–25° measured) and flips 180° past upright. geo-kit has `map` (top edge, phone flat) and `aim` (back of phone, held up) and shows a hint when the pose does not fit.
   - **Follow the north-referenced stream directly** (as blaster and wacka do, confirmed on the owner's Pixel). noxari follows the relative gyro stream with a stored offset, which can drift away from north; a likely (not proven) cause of its paused bug B-001. A wrong compass (magnets, no calibration) can still give a wrong heading; the calibration screen and "align to north" cover that. Light vector smoothing is used.
   - **iPhone:** `alpha` has an arbitrary zero; `webkitCompassHeading` is the north-referenced equivalent. geo-kit learns the offset between them and then uses the same 3D maths as Android. Untested on a device.
-  - **Headings are magnetic.** In Uppsala true north is about 6° different; `setHeadingOffset()` corrects it, automatic correction is F-006.
+  - **Headings are true north by default** (F-006): the phones report magnetic north, and geo-kit adds the declination from the World Magnetic Model WMM2025 (NOAA/BGS, public-domain coefficients in `src/wmm.ts`, verified against all 100 official test values) at the player's GPS position. About +7.7° in Uppsala in 2026. Until the first fix, headings are magnetic (`direction.north` says which). WMM2025 is valid until 2030.
   - **Diagnostic reports never contain coordinates**, only sensor values and GPS accuracy.
 
 The design draws on the owner's three projects (analysis 2026-11-11): wacka (GPS start flow, permission check, desktop hint, optional compass, top-edge maths), blaster (absolute-only compass, iOS permission in the tap, Android sensor fallback, stale/resume handling, GPS course fallback, arrival rule 15 m / 35 m / 2 s), noxari (back-of-phone direction with pitch, listener restarts, missing-data timeout, align to north, report download).
@@ -71,6 +71,7 @@ These are the project rules (linked from AGENTS.md).
 
 | Path | Content |
 |---|---|
+| `src/wmm.ts` | World Magnetic Model (declination for true north). |
 | `src/math.ts` | Angles, rotation matrices, distance, bearing, `continuousAngle`. |
 | `src/orientation.ts` | Pure heading/pitch tracker for `map` and `aim` modes, iOS offset, smoothing, pose hints. |
 | `src/heading.ts` | Browser wiring for direction: permission, listeners, fallbacks, timeouts. |
@@ -85,8 +86,8 @@ These are the project rules (linked from AGENTS.md).
 
 ## Latest entries
 
+- 2026-11-12 – Version 0.3.0: true north (F-006), privacy guidance in INTEGRATION.md (D-011), notes for blaster/wacka/noxari (D-007).
 - 2026-11-12 – Adapted to agent rules v1.2 (wording only, no repo changes needed).
 - 2026-11-12 – Automatic releases via GitHub Actions (adaptation 1.1).
 - 2026-11-12 – Adapted to agent rules v1.1: Decisions section, project language, environment limitations, one-time actions, legal review (D-010, D-011), neutral model levels in the backlog.
 - 2026-11-12 – Fixed the test page dial spinning across north (B-009). Found the same kind of spin in wacka and noxari (added to D-007).
-- 2026-11-12 – Devices without GPS/compass, version 0.2.0 (F-008).

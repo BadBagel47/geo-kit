@@ -5,6 +5,8 @@
 import { HeadingController, type HeadingState, type HeadingTiming, needsMotionPermission } from './heading.js';
 import { LocationController, type LocationOptions, type LocationState } from './location.js';
 import type { PointingMode } from './orientation.js';
+import { magneticDeclination } from './wmm.js';
+import { distanceMeters, normalizeDegrees } from './math.js';
 
 export type GeoKitOptions = {
   /** Use GPS. Default true. */
@@ -17,6 +19,11 @@ export type GeoKitOptions = {
   smoothingMs?: number;
   /** Use the GPS direction of travel when the compass is not available (map mode default true, aim false). */
   courseFallback?: boolean;
+  /**
+   * Report compass headings relative to true north (like maps and bearingDegrees) instead of
+   * magnetic north. Uses the World Magnetic Model at the player's GPS position. Default true.
+   */
+  trueNorth?: boolean;
   /** Start automatically on load when location is already allowed. Default true. */
   autoStart?: boolean;
   headingTiming?: HeadingTiming;
@@ -39,6 +46,13 @@ export type DirectionState = {
   pitch: number | null;
   /** "compass" = phone direction, "course" = GPS direction of travel. */
   source: 'compass' | 'course' | null;
+  /**
+   * Which north `heading` refers to. GPS course is always true north. A compass heading is
+   * "magnetic" until the first position is known (or when trueNorth is off).
+   */
+  north: 'true' | 'magnetic' | null;
+  /** Magnetic declination applied to the compass heading, in degrees (east positive), or null. */
+  declination: number | null;
 };
 
 export type GeoKitState = {
@@ -74,6 +88,8 @@ export class GeoKit {
   private readonly device: DeviceInfo = detectDevice();
   private started = false;
   private notifyQueued = false;
+  private declination: number | null = null;
+  private declinationAt: { lat: number; lon: number } | null = null;
 
   constructor(private readonly options: GeoKitOptions = {}) {
     this.logEnabled = options.diagnostics !== false;
@@ -117,8 +133,13 @@ export class GeoKit {
   destroy(): void { this.head?.destroy(); this.loc?.destroy(); this.listeners.clear(); }
 
   /** Treat the direction the phone points now as north. Returns false if no heading yet. */
-  alignNorth(): boolean { return this.head?.alignNorth() ?? false; }
-  /** Fixed correction in degrees (e.g. magnetic declination or a known offset). */
+  alignNorth(): boolean {
+    if (!this.head?.alignNorth()) return false;
+    // The player points at true north: compensate for the declination added later.
+    if (this.useTrueNorth() && this.declination !== null) this.head.setOffset(this.head.getOffset() - this.declination);
+    return true;
+  }
+  /** Fixed correction in degrees on top of the automatic true-north correction (e.g. a known device offset). */
   setHeadingOffset(degrees: number): void { this.head?.setOffset(degrees); }
   resetAlignment(): void { this.head?.resetAlignment(); }
 
@@ -163,18 +184,36 @@ export class GeoKit {
   private compute(): GeoKitState {
     const location = this.loc ? this.loc.state : null;
     const compass = this.head ? this.head.state : null;
-    let direction: DirectionState = { heading: null, pitch: null, source: null };
+    this.updateDeclination(location?.fix ?? null);
+    const decl = this.useTrueNorth() ? this.declination : null;
+    const fromCompass = (heading: number, pitch: number | null): DirectionState => ({
+      heading: decl === null ? heading : normalizeDegrees(Math.round((heading + decl) * 10) / 10),
+      pitch, source: 'compass', north: decl === null ? 'magnetic' : 'true', declination: decl,
+    });
+    let direction: DirectionState = { heading: null, pitch: null, source: null, north: null, declination: null };
     if (compass && compass.heading !== null && ['ok', 'pose'].includes(compass.status)) {
-      direction = { heading: compass.heading, pitch: compass.pitch, source: 'compass' };
+      direction = fromCompass(compass.heading, compass.pitch);
     } else if (this.courseFallback && location?.fix?.course != null && (location.status === 'ok' || location.status === 'weak')) {
-      direction = { heading: location.fix.course, pitch: null, source: 'course' };
+      direction = { heading: location.fix.course, pitch: null, source: 'course', north: 'true', declination: null };
     } else if (compass && compass.heading !== null && compass.status === 'stale') {
-      direction = { heading: compass.heading, pitch: compass.pitch, source: 'compass' };
+      direction = fromCompass(compass.heading, compass.pitch);
     }
     return {
       started: this.started, location, compass, direction, device: this.device,
       mode: this.options.heading || null, pitchEnabled: this.options.heading === 'aim' && this.options.pitch === true,
     };
+  }
+
+  private useTrueNorth(): boolean { return this.options.trueNorth !== false; }
+
+  /** Recompute the declination for the first fix and after moving more than 5 km. */
+  private updateDeclination(fix: { lat: number; lon: number } | null): void {
+    if (!this.useTrueNorth() || !fix) return;
+    if (this.declinationAt && distanceMeters(this.declinationAt, fix) < 5000) return;
+    try {
+      const value = magneticDeclination(fix.lat, fix.lon);
+      if (Number.isFinite(value)) { this.declination = Math.round(value * 10) / 10; this.declinationAt = { lat: fix.lat, lon: fix.lon }; }
+    } catch { /* keep magnetic headings */ }
   }
 
   private changed(): void {

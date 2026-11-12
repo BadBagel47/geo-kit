@@ -7,6 +7,7 @@ const setup = {
   theme: params.get('theme') ?? 'light',
   lang: params.get('lang') ?? 'en',
   nogps: params.get('nogps') ?? 'warn',
+  north: params.get('north') === 'magnetic' ? 'magnetic' : 'true',
   require: params.get('require') === '1',
   sim: params.get('sim') === '1',
 };
@@ -15,9 +16,9 @@ document.getElementById('version').textContent = 'v' + VERSION;
 // ---------- Setup form (changes reload the page for a clean start) ----------
 const form = document.getElementById('setup');
 form.mode.value = setup.mode; form.theme.value = setup.theme; form.lang.value = setup.lang;
-form.nogps.value = setup.nogps; form.require.checked = setup.require; form.sim.checked = setup.sim;
+form.nogps.value = setup.nogps; form.north.value = setup.north; form.require.checked = setup.require; form.sim.checked = setup.sim;
 form.addEventListener('change', () => {
-  const next = new URLSearchParams({ mode: form.mode.value, theme: form.theme.value, lang: form.lang.value, nogps: form.nogps.value });
+  const next = new URLSearchParams({ mode: form.mode.value, theme: form.theme.value, lang: form.lang.value, nogps: form.nogps.value, north: form.north.value });
   if (form.require.checked) next.set('require', '1');
   if (form.sim.checked) next.set('sim', '1');
   location.search = next.toString();
@@ -66,7 +67,7 @@ function installSimulation() {
 
 // ---------- The library ----------
 const heading = setup.mode === 'none' ? false : setup.mode === 'map' ? 'map' : 'aim';
-const kit = new GeoKit({ heading, pitch: setup.mode === 'aim-pitch' });
+const kit = new GeoKit({ heading, pitch: setup.mode === 'aim-pitch', trueNorth: setup.north === 'true' });
 const ui = mountGeoKitUI(kit, {
   lang: setup.lang,
   theme: themes[setup.theme] ?? {},
@@ -120,7 +121,7 @@ const readout = document.getElementById('readout');
 pitchBox.hidden = setup.mode !== 'aim-pitch';
 // Unwrapped angles so the CSS transition always turns the short way.
 let roseAngle = null, arrowAngle = null;
-const fmt = (v, unit = '°') => v === null || v === undefined ? '—' : `${Math.round(v)}${unit}`;
+const fmt = (v, unit = '°') => v === null || v === undefined ? '—' : `${unit === '°' && v >= 0 ? Math.round(v) % 360 : Math.round(v)}${unit}`;
 
 function render() {
   const s = kit.getState();
@@ -147,7 +148,9 @@ function render() {
   ];
   if (s.pitchEnabled) rows.push(['Up/down', fmt(s.direction.pitch)]);
   if (s.compass?.accuracy != null) rows.push(['Compass accuracy', fmt(s.compass.accuracy)]);
-  if (s.compass?.aligned) rows.push(['North', 'manually aligned']);
+  if (s.direction.north) rows.push(['North', s.direction.north === 'true' && s.direction.declination !== null
+    ? `true (declination ${s.direction.declination >= 0 ? '+' : ''}${s.direction.declination}°)` : s.direction.north]);
+  if (s.compass?.aligned) rows.push(['Alignment', 'manual']);
   if (target) rows.push(['Target', distance === null ? 'waiting for GPS' : `${Math.round(distance)} m, ${rel === null ? '—' : (rel >= 0 ? `${Math.round(rel)}° right` : `${Math.round(-rel)}° left`)}`], ['At target', zoneInside ? 'yes' : 'no']);
   readout.innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd data-key="${k}">${v}</dd></div>`).join('');
   restart.textContent = s.started ? 'Stop' : 'Start';
