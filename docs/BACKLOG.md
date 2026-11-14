@@ -8,10 +8,18 @@ IDs: one shared running series. B = bug, F = feature, D = planning/design. Prior
 |---|---|---|---|---|
 | D-005 | Design | High | Field test the test page outdoors on a real phone: Android (Pixel) in all three modes, and an iPhone if available. Check that the heading matches reality, that there are no jumps when tilting, that the screens are understandable, and that "At target" triggers at the right place. Download a report if something is wrong. | Owner, outdoors with a phone |
 | D-010 | Design | Low | Licence: the repo is public but has no licence file, so nobody else may legally reuse the code. Fine for the owner's own projects. Decide whether to add one (e.g. MIT) or keep it as is. | Owner's choice |
+| F-012 | Feature | Medium | Sparse whole-session trace in the diagnostic report: about one entry per second for the last 10 minutes (heading, pitch, status, validity), next to the existing dense list of the last 800 entries. The dense list covers only about 15–25 s, so the start of a problem is usually gone at download. From noxari's direction report 2026-11-14, see [FINDINGS.md](FINDINGS.md). Done when a report downloaded minutes after a fault still shows when it began. No coordinates. | Owner's go |
+| F-013 | Feature | Medium | Record the relative stream for diagnostics only: geo-kit drops relative `deviceorientation` events today. Keep its heading in the sparse trace (F-012) as the difference from the north-referenced heading, without ever using it for the reported heading. That difference is the only compass quality signal a page has on Android. Done when the report shows the difference over time and the reported heading is unchanged (unit test). | Owner's go, after F-012 |
+| D-014 | Design | Medium | Add to the field test D-005: lower and raise the phone fast, turn fast, then aim at a known landmark and note how many seconds the heading needs to settle and how far off it is. noxari's report showed 43° of disagreement between the streams after one fast tilt and several seconds of creeping. | Owner, outdoors with a phone |
+| D-015 | Design | Low | Decide whether a large change of the iOS offset (above 30°, applied in one step after 1 s in `learnIosOffset`) and "align to north" should glide over a short time instead of stepping. One-step corrections of 55° and 116° were what made noxari's direction unusable for the owner. Untestable without an iPhone. | Owner's choice |
 
 ## Proposed runs
 
-No run is ready. D-005 (field test) waits for the owner's test outdoors; D-010 (licence) is the owner's choice.
+Last updated 2026-11-14. The letters apply to this list only.
+
+**A — F-012 + F-013: a report that keeps the start of a problem** (standard model). Sparse whole-session trace and the relative stream recorded for diagnostics only. No change to the reported heading. Background in [FINDINGS.md](FINDINGS.md).
+
+D-005 with D-014 (field test) waits for the owner's test outdoors; D-010 (licence) and D-015 (gliding corrections) are the owner's choice.
 
 ## Done
 

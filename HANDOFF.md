@@ -4,7 +4,7 @@
 - Inventory: 2026-11-11
 - **Publishing:** GitHub Pages from `main`, folder `/` (root `index.html` redirects to `demo/`): https://badbagel47.github.io/geo-kit/demo/. Every push to `main` publishes. Other projects use the library through a git tag (see [docs/INTEGRATION.md](docs/INTEGRATION.md)).
 - **Project language:** English (README, code, docs). The player-facing texts ship in English and Swedish; each game picks its language.
-- **Last updated:** 2026-11-12
+- **Last updated:** 2026-11-14
 
 ## Current state
 
@@ -14,6 +14,7 @@ Version 0.3.0 is built and tested automatically (26 unit tests, 10 browser check
 
 1. D-005 (field test): the owner tests the test page on a phone outdoors in all three modes and downloads a report if something looks wrong. Check especially that the heading now matches true north (maps).
 2. D-010 (licence): owner's choice.
+3. Proposed run A (F-012 + F-013, a report that keeps the start of a problem) waits for the owner's go; see docs/BACKLOG.md and docs/FINDINGS.md.
 
 ## Decisions
 
@@ -66,6 +67,7 @@ These are the project rules (linked from AGENTS.md).
 | `README.md` | What geo-kit is, quick start. |
 | `docs/INTEGRATION.md` | How to use geo-kit in a project (for agents), incl. the questions to ask the owner. |
 | `docs/BACKLOG.md` | Bugs, features, design items and proposed runs. |
+| `docs/FINDINGS.md` | Field findings from the owner's other projects that matter for geo-kit (aggregate measurements only). |
 
 ## File map
 
@@ -86,6 +88,7 @@ These are the project rules (linked from AGENTS.md).
 
 ## Latest entries
 
+- 2026-11-14 – Findings from noxari's direction report (bug B-001 there) written to docs/FINDINGS.md: the measurements support following the north-referenced stream (D-001) and show what the report needs to keep. Proposals F-012, F-013, D-014, D-015 added. Documentation only.
 - 2026-11-12 – Version 0.3.0: true north (F-006), privacy guidance in INTEGRATION.md (D-011), notes for blaster/wacka/noxari (D-007).
 - 2026-11-12 – Adapted to agent rules v1.2 (wording only, no repo changes needed).
 - 2026-11-12 – Automatic releases via GitHub Actions (adaptation 1.1).
