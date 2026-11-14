@@ -15,11 +15,13 @@ IDs: one shared running series. B = bug, F = feature, D = planning/design. Prior
 
 ## Proposed runs
 
-Last updated 2026-11-14. The letters apply to this list only.
+Proposal 2026-11-14 (letters refer to this proposal only).
 
-**A — F-012 + F-013: a report that keeps the start of a problem** (standard model). Sparse whole-session trace and the relative stream recorded for diagnostics only. No change to the reported heading. Background in [FINDINGS.md](FINDINGS.md).
+- **A** – standard model, medium level – A report that keeps the start of a problem
+  - F-012 – Sparse whole-session trace in the diagnostic report
+  - F-013 – Record the relative stream for diagnostics only
 
-D-005 with D-014 (field test) waits for the owner's test outdoors; D-010 (licence) and D-015 (gliding corrections) are the owner's choice.
+Waiting for the owner: D-005 with D-014 (field test outdoors); D-010 (licence) and D-015 (gliding corrections) are the owner's choice.
 
 ## Done
 
