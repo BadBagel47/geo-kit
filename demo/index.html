@@ -101,7 +101,7 @@
         <option>insecure</option><option>unsupported</option><option>desktop</option><option>no-gps</option><option>no-compass-device</option>
       </select>
     </label>
-    <p class="hint">The report contains sensor values and GPS accuracy, but never your coordinates.</p>
+    <p class="hint">The report contains sensor values and GPS accuracy, but never your coordinates. It keeps about one reading per second for the last ten minutes, so it also shows how a problem began.</p>
   </section>
 
   <section class="panel sim" id="sim-panel" hidden aria-labelledby="sim-title">
@@ -109,6 +109,7 @@
     <label>Alpha (turn) <input type="range" name="alpha" min="0" max="359" value="0"></label>
     <label>Beta (tilt forward/back) <input type="range" name="beta" min="-180" max="180" value="20"></label>
     <label>Gamma (tilt sideways) <input type="range" name="gamma" min="-90" max="90" value="0"></label>
+    <label>Relative stream offset <input type="range" name="relOffset" min="0" max="359" value="50"></label>
     <label>GPS accuracy (m) <input type="range" name="accuracy" min="2" max="1500" value="6"></label>
     <label>Walk north (m) <input type="range" name="north" min="-200" max="200" value="0"></label>
     <div class="buttons">

@@ -2,7 +2,7 @@
  * GeoKit: one object a game creates to get location and phone direction.
  * Framework-free. React projects can use `useSyncExternalStore(kit.subscribe, kit.getState)`.
  */
-import { type HeadingState, type HeadingTiming } from './heading.js';
+import { type HeadingDiagnostics, type HeadingState, type HeadingTiming } from './heading.js';
 import { type LocationOptions, type LocationState } from './location.js';
 import type { PointingMode } from './orientation.js';
 export type GeoKitOptions = {
@@ -74,6 +74,8 @@ export declare class GeoKit {
     private notifyQueued;
     private declination;
     private declinationAt;
+    private readonly trace;
+    private traceTimer;
     constructor(options?: GeoKitOptions);
     /** Current state. Same object until something changes (safe for useSyncExternalStore). */
     getState: () => GeoKitState;
@@ -89,6 +91,11 @@ export declare class GeoKit {
     retryLocation(): void;
     stop(): void;
     destroy(): void;
+    /**
+     * Live diagnostic values (difference between the browser's two orientation streams, iOS
+     * offset). For test pages and bug hunting; never needed for game logic.
+     */
+    getDiagnostics(): HeadingDiagnostics | null;
     /** Treat the direction the phone points now as north. Returns false if no heading yet. */
     alignNorth(): boolean;
     /** Fixed correction in degrees on top of the automatic true-north correction (e.g. a known device offset). */
@@ -99,8 +106,14 @@ export declare class GeoKit {
     /** Report as a downloadable JSON file (call from a tap). */
     downloadReport(fileName?: string): void;
     private tryAutoStart;
+    private startTrace;
+    private stopTrace;
+    /** One row of the sparse session trace. No coordinates. */
+    private sampleTrace;
     private record;
     private compute;
+    /** Feed the session trace: heading changes and state transitions. */
+    private noteChange;
     private useTrueNorth;
     /** Recompute the declination for the first fix and after moving more than 5 km. */
     private updateDeclination;

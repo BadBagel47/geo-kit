@@ -1,6 +1,8 @@
 export { GeoKit } from './kit.js';
 export type { GeoKitOptions, GeoKitState, DeviceInfo, DirectionState } from './kit.js';
-export type { HeadingState, HeadingStatus, HeadingTiming } from './heading.js';
+export type { HeadingState, HeadingStatus, HeadingTiming, HeadingDiagnostics } from './heading.js';
+export { SessionTrace, StreamComparison } from './diagnostics.js';
+export type { TraceExport, TraceValue, Transition, StreamDifference } from './diagnostics.js';
 export type { LocationState, LocationStatus, LocationOptions, Fix } from './location.js';
 export { isFresh } from './location.js';
 export { OrientationTracker, POOR_COMPASS_ACCURACY } from './orientation.js';

@@ -1,4 +1,5 @@
 export { GeoKit } from './kit.js';
+export { SessionTrace, StreamComparison } from './diagnostics.js';
 export { isFresh } from './location.js';
 export { OrientationTracker, POOR_COMPASS_ACCURACY } from './orientation.js';
 export { ZoneMonitor } from './zone.js';

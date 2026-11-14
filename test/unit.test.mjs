@@ -1,7 +1,7 @@
 // Unit tests for the pure parts. Run with: npm test (builds first, then node --test).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { OrientationTracker, ZoneMonitor, continuousAngle, distanceMeters, bearingDegrees, relativeBearing, angleDelta, getGuidance, en, sv, getTexts, fill } from '../dist/index.js';
+import { OrientationTracker, ZoneMonitor, SessionTrace, StreamComparison, continuousAngle, distanceMeters, bearingDegrees, relativeBearing, angleDelta, getGuidance, en, sv, getTexts, fill } from '../dist/index.js';
 import { matrixFromEuler } from '../dist/math.js';
 import { magneticDeclination, decimalYear } from '../dist/wmm.js';
 
@@ -264,4 +264,102 @@ test('WMM2025 declination matches NOAA test values', () => {
     assert.ok(Math.abs(actual - expected) < 0.01, `${year} ${lat},${lon}: expected ${expected}, got ${actual}`);
   }
   assert.ok(Math.abs(decimalYear(new Date(Date.UTC(2026, 6, 2, 12))) - 2026.5) < 0.01);
+});
+
+// iOS-style sample: relative alpha with an arbitrary zero plus the compass heading.
+const iosSample = (trueAlpha, zero, beta = 10) =>
+  ({ alpha: trueAlpha + zero, beta, gamma: 0, absolute: false, compassHeading: (360 - trueAlpha) % 360, compassAccuracy: 10 });
+
+test('iOS: a large offset change glides instead of stepping (D-015)', () => {
+  const t = new OrientationTracker({ mode: 'map', smoothingMs: 0 });
+  let time = 0, out;
+  for (; time < 500; time += 16) out = t.pushEuler(iosSample(0, 123), time);
+  close(out.heading, 0, 0.5);
+  // The compass reading moves 116° while the phone is still (as when a disturbed compass
+  // recovers; noxari's report had corrections of 55° and 116°).
+  let previous = out.heading, largest = 0, movedAt = null;
+  const start = time;
+  for (; time < start + 4000; time += 16) {
+    out = t.pushEuler({ ...iosSample(0, 123), compassHeading: 116 }, time);
+    const step = Math.abs(angleDelta(previous, out.heading));
+    if (step > largest) largest = step;
+    if (movedAt === null && step > 0) movedAt = time - start;
+    previous = out.heading;
+  }
+  assert.ok(movedAt >= 1000, `the change must persist for a second first, moved after ${movedAt} ms`);
+  assert.ok(largest < 4, `largest single step was ${largest}°`);
+  close(out.heading, 116, 1, 'converged after the glide');
+});
+
+test('iOS: a short burst of bad compass readings is still ignored', () => {
+  const t = new OrientationTracker({ mode: 'map', smoothingMs: 0 });
+  let time = 0, out;
+  for (; time < 500; time += 16) out = t.pushEuler(iosSample(0, 50), time);
+  for (let i = 0; i < 20; i++, time += 16) out = t.pushEuler({ ...iosSample(0, 50), compassHeading: 90 }, time);
+  close(out.heading, 0, 0.5, 'bad readings for 0.3 s do not move the heading');
+  for (let i = 0; i < 20; i++, time += 16) out = t.pushEuler(iosSample(0, 50), time);
+  close(out.heading, 0, 0.5);
+});
+
+test('session trace: about one row per interval, capped, with the largest step (F-012)', () => {
+  const trace = new SessionTrace(1000, 5, 3);
+  let calls = 0;
+  const snap = heading => () => { calls++; return { heading, compass: 'ok' }; };
+  assert.equal(trace.sample(0, snap(10)), true);
+  assert.equal(trace.sample(400, snap(11)), false, 'too soon');
+  assert.equal(calls, 1, 'snapshot only built when a row is stored');
+  trace.noteHeading(10); trace.noteHeading(12); trace.noteHeading(350); trace.noteHeading(350);
+  assert.equal(trace.sample(1000, snap(350)), true);
+  let { trace: exported } = trace.export();
+  assert.deepEqual(exported.columns, ['t', 'heading', 'compass', 'updates', 'step']);
+  assert.deepEqual(exported.rows[1], [1000, 350, 'ok', 3, 22]);
+  for (let t = 2000; t <= 9000; t += 1000) trace.sample(t, snap(1));
+  exported = trace.export().trace;
+  assert.equal(exported.rows.length, 5);
+  assert.equal(exported.rows[0][0], 5000, 'oldest rows are dropped first');
+  assert.equal(exported.rows[4][3], 0, 'counters reset for each row');
+});
+
+test('session trace: transitions are kept with their time', () => {
+  const trace = new SessionTrace(1000, 5, 3);
+  trace.transition(100, 'compass', 'waiting', 'ok');
+  trace.transition(200, 'compass', 'ok', 'ok');
+  trace.transition(61000, 'compass', 'ok', 'stale');
+  assert.deepEqual(trace.export().transitions, [
+    { t: 100, what: 'compass', from: 'waiting', to: 'ok' },
+    { t: 61000, what: 'compass', from: 'ok', to: 'stale' },
+  ]);
+  for (let i = 0; i < 5; i++) trace.transition(70000 + i, 'hint', i, i + 1);
+  assert.equal(trace.export().transitions.length, 3);
+});
+
+test('stream comparison: offset between the north-referenced and relative streams (F-013)', () => {
+  for (const [mode, beta] of [['map', 20], ['aim', 80]]) {
+    const c = new StreamComparison(mode);
+    assert.deepEqual(c.get(), { offset: null, pitchDifference: null });
+    c.pushAbsolute(0, beta, 5, 1000);
+    c.pushRelative(50, beta, 5, 1020);
+    assert.equal(c.get().offset, 50, mode);
+    assert.equal(c.get().pitchDifference, 0, mode);
+    // Turning the phone moves both streams together: the offset stays.
+    c.pushAbsolute(200, beta, 5, 2000);
+    c.pushRelative(250, beta, 5, 2010);
+    assert.equal(c.get().offset, 50, mode);
+    // A pair too far apart in time is not compared.
+    c.pushAbsolute(200, beta, 5, 3000);
+    assert.equal(c.get().offset, null, mode);
+  }
+  const up = new StreamComparison('aim');
+  up.pushAbsolute(0, 179, 0, 0); up.pushRelative(50, 179, 0, 5);
+  assert.equal(up.get().offset, null, 'no heading offset when pointing straight up');
+  assert.equal(up.get().pitchDifference, 0);
+});
+
+test('relative samples never change the reported heading (F-013)', () => {
+  const t = new OrientationTracker({ mode: 'aim', pitch: true, smoothingMs: 0 });
+  const before = t.pushEuler(euler(30, 90, 0), 0);
+  assert.equal(t.pushEuler({ alpha: 200, beta: 40, gamma: 10, absolute: false }, 10), null);
+  const after = t.pushEuler(euler(30, 90, 0), 20);
+  assert.equal(after.heading, before.heading);
+  assert.equal(after.pitch, before.pitch);
 });

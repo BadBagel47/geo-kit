@@ -32,9 +32,9 @@ The report holds 473 pairs of readings (north-referenced and relative, at most 4
 5. **Android gives the page no compass accuracy.** `webkitCompassAccuracy` is iOS only. On Android the only quality signal available to a page is the comparison between the two streams, and that comparison cannot say which one is wrong.
 6. **The diagnostic report must keep the start of a problem.** noxari's report keeps frozen windows around each warning (200 readings before, 100 after) plus a list of transitions, and that is what made this analysis possible. It still lost the 17 s in which the offset moved 116°. geo-kit's report is a rolling list of the last 800 entries, about 15–25 s at phone sensor rates, so the start of a problem is normally gone when the owner taps download.
 
-### Proposals (in the backlog, not built)
+### Proposals and what became of them
 
-- F-012: a sparse whole-session trace in the report.
-- F-013: record the relative stream for diagnostics only.
-- D-014: add fast-movement steps to the field test D-005.
-- D-015: decide whether large iOS offset changes should glide.
+- F-012: a sparse whole-session trace in the report. Built 2026-11-14 (version 0.4.0).
+- F-013: record the relative stream for diagnostics only. Built 2026-11-14 (version 0.4.0).
+- D-014: add fast-movement steps to the field test D-005. Open, waits for the owner's test.
+- D-015: large iOS offset changes glide instead of stepping. Decided and built 2026-11-14; "align to north" stays immediate.

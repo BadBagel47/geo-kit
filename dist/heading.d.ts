@@ -3,6 +3,7 @@
  * restarts and timeouts. The maths lives in orientation.ts.
  */
 import { type OrientationOptions, type PoseHint } from './orientation.js';
+import { type StreamDifference } from './diagnostics.js';
 export type HeadingStatus = 'off' | 'unsupported' | 'insecure' | 'requesting' | 'denied' | 'waiting' | 'ok' | 'pose' | 'stale' | 'missing' | 'no-north';
 export type HeadingState = {
     status: HeadingStatus;
@@ -27,6 +28,10 @@ export type HeadingTiming = {
     /** No usable data this long after start means "missing". Default 8000 ms. */
     missingMs?: number;
 };
+export type HeadingDiagnostics = StreamDifference & {
+    /** iOS: the learned offset between the relative angle and north, in degrees, or null. */
+    iosOffset: number | null;
+};
 export type SampleLog = (entry: Record<string, unknown>) => void;
 export declare function needsMotionPermission(): boolean;
 export declare class HeadingController {
@@ -48,6 +53,8 @@ export declare class HeadingController {
     private detach;
     private sensor;
     private orientationSeenAt;
+    /** Diagnostics only: never feeds the reported heading. */
+    private readonly comparison;
     constructor(options: OrientationOptions, timing: HeadingTiming, onChange: () => void, log?: SampleLog | undefined);
     /**
      * Start, asking for permission where the browser requires it.
@@ -62,6 +69,8 @@ export declare class HeadingController {
     alignNorth(): boolean;
     /** Add a fixed correction in degrees (positive = turn the reported heading clockwise). */
     setOffset(degrees: number): void;
+    /** Values for the diagnostic report. Not used for the reported heading. */
+    diagnostics(): HeadingDiagnostics;
     /** The manual correction currently applied, in degrees. */
     getOffset(): number;
     resetAlignment(): void;

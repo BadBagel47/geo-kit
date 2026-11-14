@@ -172,6 +172,36 @@ try {
     await page.context().close();
   });
 
+  await check('report: session trace, stream offset for diagnostics only, no coordinates', async () => {
+    const page = await open('mode=aim-pitch&sim=1&north=magnetic');
+    await page.getByRole('button', { name: 'Allow and start' }).click();
+    await slider(page, 'beta', 90);
+    const lastRow = (name, expected) => page.waitForFunction(([column, wanted]) => {
+      const { trace } = window.geoKit.exportReport();
+      const row = trace.rows.at(-1);
+      return trace.rows.length >= 3 && row && row[trace.columns.indexOf(column)] === wanted
+        && row[trace.columns.indexOf('compass')] === 'ok';
+    }, [name, expected], { timeout: 10000 });
+    await lastRow('relOffset', 50);
+    assert.match(await value(page, 'Heading'), /^0°/);
+    // The relative stream drifts 43° away: recorded, but the heading must not move.
+    await slider(page, 'relOffset', 93);
+    await lastRow('relOffset', 93);
+    assert.match(await value(page, 'Heading'), /^0°/);
+    assert.equal(await value(page, 'Stream offset'), '93°');
+    const report = await page.evaluate(() => window.geoKit.exportReport());
+    assert.equal(report.reportVersion, 2);
+    assert.equal(report.diagnostics.offset, 93);
+    assert.ok(report.transitions.some(t => t.what === 'compass' && t.to === 'ok'), 'compass start is in the transitions');
+    assert.ok(report.transitions.some(t => t.what === 'location' && t.to === 'ok'), 'GPS start is in the transitions');
+    assert.ok(report.samples.some(sample => sample.relOffset === 93), 'dense samples carry the offset');
+    const headingColumn = report.trace.columns.indexOf('heading');
+    assert.ok(report.trace.rows.slice(-2).every(row => row[headingColumn] === 0), 'trace shows the unchanged heading');
+    const text = JSON.stringify(report);
+    assert.ok(!text.includes('59.85') && !text.includes('17.63'), 'no coordinates in the report');
+    await page.context().close();
+  });
+
   await check('desktop visitors are asked to use a phone', async () => {
     const context = await browser.newContext({ viewport: { width: 1200, height: 800 } });
     const page = await context.newPage();

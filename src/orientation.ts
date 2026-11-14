@@ -53,6 +53,10 @@ const MAP_ENTER = 0.3, MAP_LEAVE = 0.22;
 const AIM_MIN = -65, AIM_MAX = 65, AIM_HYST = 5;
 /** Aim mode with pitch: the heading is undefined near straight up/down. */
 const AIM_PITCH_LIMIT = 86;
+/** iOS: an offset change above this many degrees is first treated as a bad reading. */
+const IOS_OUTLIER = 30;
+/** iOS: the fastest the learned offset may move, in degrees per second. */
+const IOS_MAX_RATE = 180;
 /** iOS accuracy (degrees) above which we suggest calibration. */
 export const POOR_COMPASS_ACCURACY = 25;
 
@@ -70,6 +74,8 @@ export class OrientationTracker {
   private iosOffset: number | null = null;
   private iosOutlierSince: number | null = null;
   private iosOffsetTime: number | null = null;
+  /** iOS: a large offset change has been trusted and is being approached gradually. */
+  private iosGliding = false;
   /** Manual correction added to every heading (e.g. after "align to north"). */
   private userOffset = 0;
 
@@ -81,7 +87,7 @@ export class OrientationTracker {
 
   reset(): void {
     this.smoothed = null; this.lastTime = null; this.heading = null; this.pitch = null;
-    this.poseOk = true; this.hint = null; this.iosOffset = null; this.iosOutlierSince = null; this.iosOffsetTime = null;
+    this.poseOk = true; this.hint = null; this.iosOffset = null; this.iosOutlierSince = null; this.iosOffsetTime = null; this.iosGliding = false;
   }
 
   setUserOffset(degrees: number): void { this.userOffset = normalizeDegrees(degrees); this.smoothed = null; }
@@ -173,18 +179,29 @@ export class OrientationTracker {
     return this.smoothed;
   }
 
+  /** iOS: the learned offset between relative alpha and north, for diagnostics. */
+  getIosOffset(): number | null { return this.iosOffset; }
+
   private learnIosOffset(raw: number, time: number): void {
     if (this.iosOffset === null) { this.iosOffset = raw; this.iosOffsetTime = time; return; }
+    const dt = this.iosOffsetTime === null ? 0 : Math.max(0, time - this.iosOffsetTime);
+    this.iosOffsetTime = time;
     const d = angleDelta(this.iosOffset, raw);
-    if (Math.abs(d) > 30) {
+    if (Math.abs(d) > IOS_OUTLIER && !this.iosGliding) {
       // A large jump must persist for a second before it is trusted (ignores single bad readings).
       if (this.iosOutlierSince === null) this.iosOutlierSince = time;
       if (time - this.iosOutlierSince < 1000) return;
-      this.iosOffset = raw; this.iosOutlierSince = null; this.iosOffsetTime = time; return;
+      // Trusted: glide to the new value instead of stepping (D-015). One-step corrections
+      // of this size are what players experience as the compass "changing direction hard".
+      this.iosGliding = true;
+      this.iosOutlierSince = null;
+      return;
     }
     this.iosOutlierSince = null;
-    const dt = this.iosOffsetTime === null ? 0 : Math.max(0, time - this.iosOffsetTime);
-    this.iosOffsetTime = time;
-    this.iosOffset = normalizeDegrees(this.iosOffset + d * (1 - Math.exp(-dt / 400)));
+    if (this.iosGliding && Math.abs(d) < 1) this.iosGliding = false;
+    // Blend towards the measured offset, never faster than IOS_MAX_RATE.
+    const limit = IOS_MAX_RATE * dt / 1000;
+    const step = Math.max(-limit, Math.min(limit, d * (1 - Math.exp(-dt / 400))));
+    this.iosOffset = normalizeDegrees(this.iosOffset + step);
   }
 }

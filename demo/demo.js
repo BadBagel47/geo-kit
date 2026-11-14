@@ -25,7 +25,7 @@ form.addEventListener('change', () => {
 });
 
 // ---------- Optional simulated sensors (desktop testing and automated tests) ----------
-const sim = { alpha: 0, beta: 20, gamma: 0, accuracy: 6, north: 0, denyGps: false, compassOn: true };
+const sim = { alpha: 0, beta: 20, gamma: 0, relOffset: 50, accuracy: 6, north: 0, denyGps: false, compassOn: true };
 const HOME = { lat: 59.8586, lon: 17.6389 };
 window.geoKitSim = sim; // used by the automated browser test
 if (setup.sim) installSimulation();
@@ -62,6 +62,13 @@ function installSimulation() {
     try { event = new DeviceOrientationEvent('deviceorientationabsolute', { alpha: sim.alpha, beta: sim.beta, gamma: sim.gamma, absolute: true }); }
     catch { event = Object.assign(new Event('deviceorientationabsolute'), { alpha: sim.alpha, beta: sim.beta, gamma: sim.gamma, absolute: true }); }
     window.dispatchEvent(event);
+    // Phones also send a relative stream with an arbitrary zero. geo-kit records it for
+    // diagnostics only; it must never change the heading.
+    const relative = { alpha: (sim.alpha + sim.relOffset) % 360, beta: sim.beta, gamma: sim.gamma, absolute: false };
+    let relativeEvent;
+    try { relativeEvent = new DeviceOrientationEvent('deviceorientation', relative); }
+    catch { relativeEvent = Object.assign(new Event('deviceorientation'), relative); }
+    window.dispatchEvent(relativeEvent);
   }, 100);
 }
 
@@ -151,9 +158,13 @@ function render() {
   if (s.direction.north) rows.push(['North', s.direction.north === 'true' && s.direction.declination !== null
     ? `true (declination ${s.direction.declination >= 0 ? '+' : ''}${s.direction.declination}°)` : s.direction.north]);
   if (s.compass?.aligned) rows.push(['Alignment', 'manual']);
+  // Diagnostics: a value that changes while the phone is still means the sensors disagree.
+  const diag = kit.getDiagnostics();
+  if (diag?.offset != null) rows.push(['Stream offset', `${diag.offset}°`]);
   if (target) rows.push(['Target', distance === null ? 'waiting for GPS' : `${Math.round(distance)} m, ${rel === null ? '—' : (rel >= 0 ? `${Math.round(rel)}° right` : `${Math.round(-rel)}° left`)}`], ['At target', zoneInside ? 'yes' : 'no']);
   readout.innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd data-key="${k}">${v}</dd></div>`).join('');
   restart.textContent = s.started ? 'Stop' : 'Start';
 }
 kit.subscribe(render);
 render();
+setInterval(render, 1000); // keeps diagnostic rows fresh while the phone is still

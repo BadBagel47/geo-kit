@@ -2,7 +2,8 @@
  * GeoKit: one object a game creates to get location and phone direction.
  * Framework-free. React projects can use `useSyncExternalStore(kit.subscribe, kit.getState)`.
  */
-import { HeadingController, type HeadingState, type HeadingTiming, needsMotionPermission } from './heading.js';
+import { HeadingController, type HeadingDiagnostics, type HeadingState, type HeadingTiming, needsMotionPermission } from './heading.js';
+import { SessionTrace, type TraceValue } from './diagnostics.js';
 import { LocationController, type LocationOptions, type LocationState } from './location.js';
 import type { PointingMode } from './orientation.js';
 import { magneticDeclination } from './wmm.js';
@@ -90,9 +91,13 @@ export class GeoKit {
   private notifyQueued = false;
   private declination: number | null = null;
   private declinationAt: { lat: number; lon: number } | null = null;
+  private readonly trace: SessionTrace | null;
+  private traceTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly options: GeoKitOptions = {}) {
     this.logEnabled = options.diagnostics !== false;
+    // The timer fires once a second; the lower limit leaves room for timer jitter.
+    this.trace = this.logEnabled ? new SessionTrace(900) : null;
     const record = this.logEnabled ? (entry: Record<string, unknown>) => this.record(entry) : undefined;
     const onChange = () => this.changed();
     const locOptions = typeof options.location === 'object' ? options.location : {};
@@ -120,17 +125,24 @@ export class GeoKit {
     this.started = true;
     this.head?.start();   // iOS motion question first, synchronously in the tap.
     this.loc?.start();
+    this.startTrace();
     this.changed();
   }
 
   /** Retry only the compass (call from a tap). */
-  retryCompass(): void { this.started = true; this.head?.start(); }
+  retryCompass(): void { this.started = true; this.head?.start(); this.startTrace(); }
   /** Retry only GPS (call from a tap). */
-  retryLocation(): void { this.started = true; this.loc?.start(); }
+  retryLocation(): void { this.started = true; this.loc?.start(); this.startTrace(); }
 
-  stop(): void { this.started = false; this.head?.stop(); this.loc?.stop(); this.changed(); }
+  stop(): void { this.started = false; this.head?.stop(); this.loc?.stop(); this.stopTrace(); this.changed(); }
 
-  destroy(): void { this.head?.destroy(); this.loc?.destroy(); this.listeners.clear(); }
+  destroy(): void { this.stopTrace(); this.head?.destroy(); this.loc?.destroy(); this.listeners.clear(); }
+
+  /**
+   * Live diagnostic values (difference between the browser's two orientation streams, iOS
+   * offset). For test pages and bug hunting; never needed for game logic.
+   */
+  getDiagnostics(): HeadingDiagnostics | null { return this.head ? this.head.diagnostics() : null; }
 
   /** Treat the direction the phone points now as north. Returns false if no heading yet. */
   alignNorth(): boolean {
@@ -147,13 +159,19 @@ export class GeoKit {
   exportReport(): Record<string, unknown> {
     const s = this.state;
     return {
-      library: 'geo-kit', reportVersion: 1, createdAt: new Date().toISOString(),
+      library: 'geo-kit', reportVersion: 2, createdAt: new Date().toISOString(),
       sessionSeconds: Math.round((Date.now() - this.createdAt) / 1000),
+      // The same clock as `t` in trace, transitions and samples (ms since the page loaded).
+      now: typeof performance === 'undefined' ? null : Math.round(performance.now()),
       userAgent: typeof navigator === 'undefined' ? null : navigator.userAgent,
       options: { ...this.options, location: this.options.location === false ? false : true },
       device: s.device, mode: s.mode, pitchEnabled: s.pitchEnabled,
       location: s.location && { status: s.location.status, permission: s.location.permission, accuracy: s.location.fix?.accuracy ?? null },
       compass: s.compass, direction: s.direction,
+      diagnostics: this.getDiagnostics(),
+      // About one row per second for the last ten minutes, and every state change.
+      ...(this.trace ? this.trace.export() : {}),
+      // Every sensor reading for the last seconds.
       samples: [...this.log],
     };
   }
@@ -173,7 +191,42 @@ export class GeoKit {
     this.loc!.start();
     // Android needs no motion prompt, so the compass can start too. iOS waits for a tap.
     this.head?.startSilently();
+    this.startTrace();
     this.changed();
+  }
+
+  private startTrace(): void {
+    if (!this.trace || this.traceTimer !== null) return;
+    this.sampleTrace();
+    this.traceTimer = setInterval(() => this.sampleTrace(), 1000);
+  }
+
+  private stopTrace(): void {
+    if (this.traceTimer !== null) clearInterval(this.traceTimer);
+    this.traceTimer = null;
+  }
+
+  /** One row of the sparse session trace. No coordinates. */
+  private sampleTrace(): void {
+    this.trace?.sample(performance.now(), (): Record<string, TraceValue> => {
+      const { location, compass, direction } = this.state;
+      const diag = this.getDiagnostics();
+      return {
+        hidden: typeof document !== 'undefined' && document.hidden,
+        location: location?.status ?? null,
+        gpsAccuracy: location?.fix ? Math.round(location.fix.accuracy) : null,
+        compass: compass?.status ?? null,
+        hint: compass?.hint ?? null,
+        source: direction.source,
+        heading: direction.heading,
+        magnetic: compass?.heading ?? null,
+        pitch: direction.pitch,
+        compassAccuracy: compass?.accuracy ?? null,
+        relOffset: diag?.offset ?? null,
+        relPitch: diag?.pitchDifference ?? null,
+        iosOffset: diag?.iosOffset ?? null,
+      };
+    });
   }
 
   private record(entry: Record<string, unknown>): void {
@@ -187,7 +240,7 @@ export class GeoKit {
     this.updateDeclination(location?.fix ?? null);
     const decl = this.useTrueNorth() ? this.declination : null;
     const fromCompass = (heading: number, pitch: number | null): DirectionState => ({
-      heading: decl === null ? heading : normalizeDegrees(Math.round((heading + decl) * 10) / 10),
+      heading: decl === null ? heading : Math.round(normalizeDegrees(heading + decl) * 10) / 10 % 360,
       pitch, source: 'compass', north: decl === null ? 'magnetic' : 'true', declination: decl,
     });
     let direction: DirectionState = { heading: null, pitch: null, source: null, north: null, declination: null };
@@ -204,6 +257,22 @@ export class GeoKit {
     };
   }
 
+  /** Feed the session trace: heading changes and state transitions. */
+  private noteChange(before: GeoKitState, after: GeoKitState): void {
+    const trace = this.trace!;
+    const now = typeof performance === 'undefined' ? 0 : performance.now();
+    trace.noteHeading(after.compass && ['ok', 'pose'].includes(after.compass.status) ? after.compass.heading : null);
+    trace.transition(now, 'started', before.started, after.started);
+    trace.transition(now, 'location', before.location?.status ?? null, after.location?.status ?? null);
+    trace.transition(now, 'compass', before.compass?.status ?? null, after.compass?.status ?? null);
+    trace.transition(now, 'hint', before.compass?.hint ?? null, after.compass?.hint ?? null);
+    trace.transition(now, 'sensor', before.compass?.source ?? null, after.compass?.source ?? null);
+    trace.transition(now, 'calibration', before.compass?.needsCalibration ?? null, after.compass?.needsCalibration ?? null);
+    trace.transition(now, 'aligned', before.compass?.aligned ?? null, after.compass?.aligned ?? null);
+    trace.transition(now, 'direction', before.direction.source, after.direction.source);
+    trace.transition(now, 'north', before.direction.north, after.direction.north);
+  }
+
   private useTrueNorth(): boolean { return this.options.trueNorth !== false; }
 
   /** Recompute the declination for the first fix and after moving more than 5 km. */
@@ -217,7 +286,9 @@ export class GeoKit {
   }
 
   private changed(): void {
+    const before = this.state;
     this.state = this.compute();
+    if (this.trace) this.noteChange(before, this.state);
     // Batch bursts of sensor events into one notification per microtask.
     if (this.notifyQueued) return;
     this.notifyQueued = true;

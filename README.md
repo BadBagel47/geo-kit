@@ -17,7 +17,7 @@ GPS position and phone direction for location-based web games, with ready-made, 
 **How to use it in a project:** [docs/INTEGRATION.md](docs/INTEGRATION.md).
 
 ```js
-import { GeoKit, mountGeoKitUI } from 'https://cdn.jsdelivr.net/gh/BadBagel47/geo-kit@v0.3.0/dist/index.js';
+import { GeoKit, mountGeoKitUI } from 'https://cdn.jsdelivr.net/gh/BadBagel47/geo-kit@v0.4.0/dist/index.js';
 
 const kit = new GeoKit({ heading: 'aim', pitch: true });
 mountGeoKitUI(kit, { lang: 'sv', texts: { app: 'Stjärnjakten' } });

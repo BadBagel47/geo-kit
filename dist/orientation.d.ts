@@ -57,6 +57,8 @@ export declare class OrientationTracker {
     private iosOffset;
     private iosOutlierSince;
     private iosOffsetTime;
+    /** iOS: a large offset change has been trusted and is being approached gradually. */
+    private iosGliding;
     /** Manual correction added to every heading (e.g. after "align to north"). */
     private userOffset;
     constructor(options: OrientationOptions);
@@ -75,5 +77,7 @@ export declare class OrientationTracker {
     private aimPose;
     /** Exponential smoothing of the pointing vector; avoids 359°/0° wrap problems. */
     private smooth;
+    /** iOS: the learned offset between relative alpha and north, for diagnostics. */
+    getIosOffset(): number | null;
     private learnIosOffset;
 }

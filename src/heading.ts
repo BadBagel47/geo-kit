@@ -4,6 +4,7 @@
  */
 import { OrientationTracker, type OrientationOptions, type OrientationOutput, type PoseHint } from './orientation.js';
 import { normalizeDegrees } from './math.js';
+import { StreamComparison, type StreamDifference } from './diagnostics.js';
 
 export type HeadingStatus =
   | 'off' | 'unsupported' | 'insecure' | 'requesting' | 'denied'
@@ -32,6 +33,11 @@ export type HeadingTiming = {
   staleMs?: number;
   /** No usable data this long after start means "missing". Default 8000 ms. */
   missingMs?: number;
+};
+
+export type HeadingDiagnostics = StreamDifference & {
+  /** iOS: the learned offset between the relative angle and north, in degrees, or null. */
+  iosOffset: number | null;
 };
 
 export type SampleLog = (entry: Record<string, unknown>) => void;
@@ -71,9 +77,12 @@ export class HeadingController {
   private detach: (() => void) | null = null;
   private sensor: AbsoluteSensor | null = null;
   private orientationSeenAt = 0;
+  /** Diagnostics only: never feeds the reported heading. */
+  private readonly comparison: StreamComparison;
 
   constructor(options: OrientationOptions, timing: HeadingTiming, private readonly onChange: () => void, private readonly log?: SampleLog) {
     this.tracker = new OrientationTracker(options);
+    this.comparison = new StreamComparison(options.mode);
     this.staleMs = timing.staleMs ?? 3000;
     this.missingMs = timing.missingMs ?? 8000;
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', this.onVisibility);
@@ -145,6 +154,12 @@ export class HeadingController {
     this.set({ aligned: normalizeDegrees(degrees) !== 0 });
   }
 
+  /** Values for the diagnostic report. Not used for the reported heading. */
+  diagnostics(): HeadingDiagnostics {
+    const offset = this.tracker.getIosOffset();
+    return { ...this.comparison.get(), iosOffset: offset === null ? null : Math.round(offset * 10) / 10 };
+  }
+
   /** The manual correction currently applied, in degrees. */
   getOffset(): number { return this.tracker.getUserOffset(); }
 
@@ -164,6 +179,7 @@ export class HeadingController {
     this.running = true;
     this.startedAt = performance.now();
     this.lastUsable = 0; this.everUsable = false; this.relativeSeen = false; this.restarts = 0;
+    this.comparison.reset();
     this.set({ status: 'waiting', needsGesture: false, source: null });
     this.attach(session);
     this.timer = setInterval(() => this.tick(session), 1000);
@@ -177,13 +193,19 @@ export class HeadingController {
       const hasIos = typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading);
       // Some browsers emit empty events; they never replace real data.
       if (event.alpha === null && !hasIos) return;
-      if (!absolute && !hasIos) { this.relativeSeen = true; return; }
+      if (!absolute && !hasIos) {
+        // The relative stream is recorded for diagnostics only and never reaches the tracker.
+        this.relativeSeen = true;
+        if (this.log) this.comparison.pushRelative(event.alpha as number, event.beta as number, event.gamma as number, performance.now(), screenAngle());
+        return;
+      }
       this.orientationSeenAt = performance.now();
+      if (this.log && !hasIos) this.comparison.pushAbsolute(event.alpha as number, event.beta as number, event.gamma as number, performance.now(), screenAngle());
       const out = this.tracker.pushEuler({
         alpha: event.alpha, beta: event.beta, gamma: event.gamma, absolute,
         compassHeading: hasIos ? event.webkitCompassHeading : null, compassAccuracy: event.webkitCompassAccuracy ?? null,
       }, performance.now(), screenAngle());
-      this.log?.({ kind: 'orientation', type: raw.type, alpha: event.alpha, beta: event.beta, gamma: event.gamma, absolute, ios: hasIos ? event.webkitCompassHeading : undefined, iosAccuracy: event.webkitCompassAccuracy, heading: out?.heading, pitch: out?.pitch, valid: out?.valid });
+      this.log?.({ kind: 'orientation', type: raw.type, alpha: event.alpha, beta: event.beta, gamma: event.gamma, absolute, ios: hasIos ? event.webkitCompassHeading : undefined, iosAccuracy: event.webkitCompassAccuracy, heading: out?.heading, pitch: out?.pitch, valid: out?.valid, relOffset: this.comparison.get().offset ?? undefined });
       if (out) this.accept(out, 'orientation');
     };
     window.addEventListener('deviceorientationabsolute', receive);

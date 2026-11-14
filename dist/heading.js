@@ -4,6 +4,7 @@
  */
 import { OrientationTracker } from './orientation.js';
 import { normalizeDegrees } from './math.js';
+import { StreamComparison } from './diagnostics.js';
 const initial = () => ({
     status: 'off', heading: null, pitch: null, hint: null, accuracy: null, needsCalibration: false,
     source: null, aligned: false, needsGesture: false,
@@ -42,6 +43,7 @@ export class HeadingController {
             }
         };
         this.tracker = new OrientationTracker(options);
+        this.comparison = new StreamComparison(options.mode);
         this.staleMs = timing.staleMs ?? 3000;
         this.missingMs = timing.missingMs ?? 8000;
         if (typeof document !== 'undefined')
@@ -128,6 +130,11 @@ export class HeadingController {
         this.tracker.setUserOffset(degrees);
         this.set({ aligned: normalizeDegrees(degrees) !== 0 });
     }
+    /** Values for the diagnostic report. Not used for the reported heading. */
+    diagnostics() {
+        const offset = this.tracker.getIosOffset();
+        return { ...this.comparison.get(), iosOffset: offset === null ? null : Math.round(offset * 10) / 10 };
+    }
     /** The manual correction currently applied, in degrees. */
     getOffset() { return this.tracker.getUserOffset(); }
     resetAlignment() {
@@ -148,6 +155,7 @@ export class HeadingController {
         this.everUsable = false;
         this.relativeSeen = false;
         this.restarts = 0;
+        this.comparison.reset();
         this.set({ status: 'waiting', needsGesture: false, source: null });
         this.attach(session);
         this.timer = setInterval(() => this.tick(session), 1000);
@@ -163,15 +171,20 @@ export class HeadingController {
             if (event.alpha === null && !hasIos)
                 return;
             if (!absolute && !hasIos) {
+                // The relative stream is recorded for diagnostics only and never reaches the tracker.
                 this.relativeSeen = true;
+                if (this.log)
+                    this.comparison.pushRelative(event.alpha, event.beta, event.gamma, performance.now(), screenAngle());
                 return;
             }
             this.orientationSeenAt = performance.now();
+            if (this.log && !hasIos)
+                this.comparison.pushAbsolute(event.alpha, event.beta, event.gamma, performance.now(), screenAngle());
             const out = this.tracker.pushEuler({
                 alpha: event.alpha, beta: event.beta, gamma: event.gamma, absolute,
                 compassHeading: hasIos ? event.webkitCompassHeading : null, compassAccuracy: event.webkitCompassAccuracy ?? null,
             }, performance.now(), screenAngle());
-            this.log?.({ kind: 'orientation', type: raw.type, alpha: event.alpha, beta: event.beta, gamma: event.gamma, absolute, ios: hasIos ? event.webkitCompassHeading : undefined, iosAccuracy: event.webkitCompassAccuracy, heading: out?.heading, pitch: out?.pitch, valid: out?.valid });
+            this.log?.({ kind: 'orientation', type: raw.type, alpha: event.alpha, beta: event.beta, gamma: event.gamma, absolute, ios: hasIos ? event.webkitCompassHeading : undefined, iosAccuracy: event.webkitCompassAccuracy, heading: out?.heading, pitch: out?.pitch, valid: out?.valid, relOffset: this.comparison.get().offset ?? undefined });
             if (out)
                 this.accept(out, 'orientation');
         };

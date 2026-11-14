@@ -40,7 +40,7 @@ How geo-kit spots a device without GPS: a computer is recognised directly; on ph
 **Projects with npm (Vite, React…).** Use a tag so the project never changes by surprise:
 
 ```sh
-npm install github:BadBagel47/geo-kit#v0.3.0
+npm install github:BadBagel47/geo-kit#v0.4.0
 ```
 
 ```js
@@ -50,7 +50,7 @@ import { GeoKit, mountGeoKitUI } from 'geo-kit';
 **Projects without a build step** (plain HTML/JS):
 
 ```js
-import { GeoKit, mountGeoKitUI } from 'https://cdn.jsdelivr.net/gh/BadBagel47/geo-kit@v0.3.0/dist/index.js';
+import { GeoKit, mountGeoKitUI } from 'https://cdn.jsdelivr.net/gh/BadBagel47/geo-kit@v0.4.0/dist/index.js';
 ```
 
 The page must be served over `https://` (or `localhost`) for sensors to work.
@@ -107,7 +107,7 @@ All texts can be replaced through `texts`. Write `introBody` for the specific ga
 - `continuousAngle(previous, next)` whenever something on screen rotates with the heading (needle, map, arrow), especially with CSS transitions or animations. Without it, crossing north (359° → 1°) makes the element spin almost a full turn.
 - `kit.alignNorth()`, `kit.setHeadingOffset(deg)`, `kit.resetAlignment()` for manual corrections.
 - **True north is automatic** (`trueNorth: true`, default): compass headings are corrected with the World Magnetic Model (WMM2025) at the player's position, so they match maps and `bearingDegrees()`. In Uppsala the correction is about +7.7° (2026). Until the first GPS position arrives the heading is magnetic; `direction.north` tells which (`'true'` or `'magnetic'`). Turn it off with `trueNorth: false` only if the game really wants magnetic north. `magneticDeclination(lat, lon)` is exported too. The model is valid until 2030; then the coefficients in `src/wmm.ts` need replacing with WMM2030.
-- `kit.downloadReport()` for bug reports from the field (no coordinates included).
+- `kit.downloadReport()` for bug reports from the field (no coordinates included). Give the game a hidden or settings-menu button for it. The report keeps every sensor reading for the last seconds, about one reading per second for the last ten minutes, and every state change, so it still shows how a problem began when it is downloaded minutes later. It also records how far the phone's two orientation streams are apart (`relOffset`); a value that changes while the phone is still means the sensors disagree. Diagnostics never change the reported heading.
 
 ## 7. Location and privacy
 
