@@ -4,7 +4,7 @@
 - Inventory: 2026-11-11
 - **Publishing:** GitHub Pages from `main`, folder `/` (root `index.html` redirects to `demo/`): https://badbagel47.github.io/geo-kit/demo/. Every push to `main` publishes. Other projects use the library through a git tag (see [docs/INTEGRATION.md](docs/INTEGRATION.md)).
 - **Project language:** English (README, code, docs). The player-facing texts ship in English and Swedish; each game picks its language.
-- **Last updated:** 2026-11-14
+- **Last updated:** 2026-11-15
 
 ## Current state
 
@@ -14,9 +14,11 @@ Version 0.4.0 is built and tested automatically (32 unit tests, 11 browser check
 
 1. D-005 with D-014 (field test): the owner tests the test page on a phone outdoors in all three modes, including fast tilts and turns followed by aiming at a known landmark, and downloads a report afterwards or when something looks wrong. Read the report's `trace`, `transitions` and `relOffset` first (see docs/FINDINGS.md for what noxari's report showed).
 2. D-010 (licence): owner's choice.
+3. Whether geo-kit goes into blaster, wacka or noxari, or only into new projects, is decided later from how the work goes (decision 2026-11-15). D-016 is parked until a project uses geo-kit.
 
 ## Decisions
 
+- **geo-kit is developed separately (2026-11-15):** owner's decision. geo-kit keeps being developed on its own. Whether it goes into one or more existing projects (blaster, wacka, noxari) or is only used in new ones is decided later, based on how the work goes. Checked the same day: no project uses geo-kit yet, and every general GPS/compass fix made in the three games after 2026-11-11 already exists in geo-kit (blaster's 20 s GPS outage rule, wacka B-036 = geo-kit B-009, noxari B-001 findings in docs/FINDINGS.md). D-016 is parked until a project uses geo-kit.
 - **Updates to projects (2026-11-15, D-016):** approved by the owner. Bug-fix releases reach the projects that use geo-kit as automatic update proposals, taken in only when the project's tests pass; fixes are always made in geo-kit first. Same model as network-kit D-009.
 
 - 2026-11-11 – The owner wants one shared module for new projects. Existing games (blaster, wacka, noxari) are **not** switched over to geo-kit; they get targeted fixes and improvement notes instead, because a full replacement risks new bugs.
@@ -92,6 +94,7 @@ These are the project rules (linked from AGENTS.md).
 
 ## Latest entries
 
+- 2026-11-15 – Owner's decision: geo-kit is developed separately; adoption in existing projects decided later. D-016 parked (no project uses geo-kit yet). Documentation only.
 - 2026-11-14 – Version 0.4.0: report keeps the start of a problem (F-012), relative stream recorded for diagnostics (F-013), gliding iPhone corrections (D-015). Adapted to agent rules v1.6 (no repo changes needed).
 - 2026-11-14 – Findings from noxari's direction report (bug B-001 there) written to docs/FINDINGS.md: the measurements support following the north-referenced stream (D-001) and show what the report needs to keep. Proposals F-012, F-013, D-014, D-015 added. Documentation only.
 - 2026-11-12 – Version 0.3.0: true north (F-006), privacy guidance in INTEGRATION.md (D-011), notes for blaster/wacka/noxari (D-007).
