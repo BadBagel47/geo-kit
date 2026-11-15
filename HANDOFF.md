@@ -1,6 +1,6 @@
 # geo-kit – Handoff
 
-- **Rules version:** adapted to agent rules v1.6.
+- **Rules version:** adapted to agent rules v1.7 (2026-11-15; no change needed: no lasting branch uses the `claude/` prefix).
 - Inventory: 2026-11-11
 - **Publishing:** GitHub Pages from `main`, folder `/` (root `index.html` redirects to `demo/`): https://badbagel47.github.io/geo-kit/demo/. Every push to `main` publishes. Other projects use the library through a git tag (see [docs/INTEGRATION.md](docs/INTEGRATION.md)).
 - **Project language:** English (README, code, docs). The player-facing texts ship in English and Swedish; each game picks its language.
