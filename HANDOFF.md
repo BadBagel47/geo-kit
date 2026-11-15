@@ -17,6 +17,8 @@ Version 0.4.0 is built and tested automatically (32 unit tests, 11 browser check
 
 ## Decisions
 
+- **Updates to projects (2026-11-15, D-016):** approved by the owner. Bug-fix releases reach the projects that use geo-kit as automatic update proposals, taken in only when the project's tests pass; fixes are always made in geo-kit first. Same model as network-kit D-009.
+
 - 2026-11-11 – The owner wants one shared module for new projects. Existing games (blaster, wacka, noxari) are **not** switched over to geo-kit; they get targeted fixes and improvement notes instead, because a full replacement risks new bugs.
 - 2026-11-11 – Up/down (pitch) from noxari is included as an option for aim mode.
 - 2026-11-12 – Devices without GPS or compass are a **project choice** (`noGps: 'warn' | 'block' | 'allow'`). The agent that adds geo-kit to a project asks the owner with a recommendation for that project (docs/INTEGRATION.md section 1).
